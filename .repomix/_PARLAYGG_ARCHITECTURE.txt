@@ -1,0 +1,735 @@
+This file is a merged representation of a subset of the codebase, containing files not matching ignore patterns, combined into a single document by Repomix.
+The content has been processed where comments have been removed.
+
+================================================================
+File Summary
+================================================================
+
+Purpose:
+--------
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+
+File Format:
+------------
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  a. A separator line (================)
+  b. The file path (File: path/to/file)
+  c. Another separator line
+  d. The full contents of the file
+  e. A blank line
+
+Usage Guidelines:
+-----------------
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+
+Notes:
+------
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching these patterns are excluded: **/s7-literature/**, **/data/**, **/output/**, **/exports/**, **/downloads/**, **/.claude/**, **/.cursor/**, **/.github/**, **/.notes/**, **/.project/**, **/.vscode/**, **/.git/**, **/.repomix/**, **/.next/**, **/node_modules/**, **/package-lock.json, **/yarn.lock, **/pnpm-lock.yaml, **/uv.lock, **/poetry.lock, **/Pipfile.lock, **/Cargo.lock, **/dist/**, **/build/**, **/target/**, **/out/**, **/venv/**, **/.venv/**, **/env/**, **/.env/**, **/.env, **/.pytest_cache/**, **/.mypy_cache/**, **/.tox/**, **/.coverage/**, **/coverage.xml, **/.nyc_output/**, **/__pycache__/**, **/training_runs/**, **/backup/**, **/.DS_Store, **/Thumbs.db, **/*.log, **/repomix.config.json, **/project/**, **.docs/**, **/*/*/*/**
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Code comments have been removed from supported file types
+- Files are sorted by Git change count (files with more changes are at the bottom)
+
+
+================================================================
+Directory Structure
+================================================================
+apps/
+  api/
+    .env.example
+    Cargo.toml
+    rustfmt.toml
+  web/
+    .env.example
+    index.html
+    package.json
+    tsconfig.json
+    vite.config.ts
+packages/
+  shared-types/
+    package.json
+    tsconfig.json
+programs/
+  preset-gate/
+    .gitignore
+    .prettierignore
+    Anchor.toml
+    Cargo.toml
+    package.json
+    README.md
+    rust-toolchain.toml
+    tsconfig.json
+.env.example
+.gitignore
+.prettierrc
+package.json
+README.md
+turbo.json
+
+================================================================
+Files
+================================================================
+
+================
+File: apps/api/.env.example
+================
+# Preset.gg API — Environment Variables
+
+# Gemini AI
+GEMINI_API_KEY="your-gemini-api-key"
+
+# Supabase
+SUPABASE_URL="https://your-project.supabase.co"
+SUPABASE_SERVICE_KEY="your-supabase-service-key"
+
+# Solana
+SOLANA_RPC_URL="https://api.mainnet-beta.solana.com"
+AUDIO_TOKEN_MINT="9LzCMqDgTKYz9Drzqnpgee3SGa89up3a247ypMj2xrqM"
+
+# Server
+API_PORT=3001
+CORS_ORIGIN="http://localhost:3000"
+
+================
+File: apps/api/Cargo.toml
+================
+[package]
+name = "preset-gg-api"
+version = "0.1.0"
+edition = "2021"
+description = "Preset.gg — AI Audio-to-Preset backend API"
+
+[dependencies]
+# Web framework
+axum = { version = "0.8", features = ["json", "multipart"] }
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# HTTP client (for Gemini, Audius, Supabase APIs)
+reqwest = { version = "0.12", features = ["json", "stream"] }
+
+# Solana
+solana-client = "2.2"
+solana-sdk = "2.2"
+spl-token = "7"
+spl-associated-token-account = "6"
+
+# Environment & config
+dotenvy = "0.15"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Error handling
+anyhow = "1"
+thiserror = "2"
+
+# Compression (Vital presets are gzipped JSON)
+flate2 = "1"
+
+# UUID generation
+uuid = { version = "1", features = ["v4"] }
+
+================
+File: apps/api/rustfmt.toml
+================
+max_width = 100
+tab_spaces = 4
+edition = "2021"
+
+================
+File: apps/web/.env.example
+================
+# Frontend environment variables (prefixed with VITE_ for Vite exposure)
+VITE_API_URL="http://localhost:3001"
+VITE_SOLANA_RPC_URL="https://api.mainnet-beta.solana.com"
+
+================
+File: apps/web/index.html
+================
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Preset.gg</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
+================
+File: apps/web/package.json
+================
+{
+  "name": "@preset-gg/web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port=3000 --host=0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "clean": "rm -rf dist",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.546.0",
+    "motion": "^12.23.24",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.14",
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "autoprefixer": "^10.4.21",
+    "tailwindcss": "^4.1.14",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}
+
+================
+File: apps/web/tsconfig.json
+================
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "allowJs": true,
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "baseUrl": ".",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"]
+}
+
+================
+File: apps/web/vite.config.ts
+================
+import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+import { defineConfig, loadEnv } from 'vite';
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, '.', '');
+  return {
+    plugins: [react(), tailwindcss()],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, 'src'),
+      },
+    },
+    server: {
+      port: 3000,
+      host: '0.0.0.0',
+      proxy: {
+        '/api': {
+          target: env.VITE_API_URL || 'http://localhost:3001',
+          changeOrigin: true,
+        },
+      },
+    },
+  };
+});
+
+================
+File: packages/shared-types/package.json
+================
+{
+  "name": "@preset-gg/shared-types",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "tsc --noEmit",
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.2"
+  }
+}
+
+================
+File: packages/shared-types/tsconfig.json
+================
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": false
+  },
+  "include": ["src"]
+}
+
+================
+File: programs/preset-gate/.gitignore
+================
+.anchor
+.DS_Store
+target
+**/*.rs.bk
+node_modules
+test-ledger
+.yarn
+
+================
+File: programs/preset-gate/.prettierignore
+================
+.anchor
+.DS_Store
+target
+node_modules
+dist
+build
+test-ledger
+
+================
+File: programs/preset-gate/Anchor.toml
+================
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+preset_gate = "8PeG7KHhJ5dyLWFTRZuPGwcQ7xvkKaUTN7F9MKgACnAc"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""
+
+================
+File: programs/preset-gate/Cargo.toml
+================
+[workspace]
+members = [
+    "programs/*"
+]
+resolver = "2"
+
+[profile.release]
+overflow-checks = true
+lto = "fat"
+codegen-units = 1
+[profile.release.build-override]
+opt-level = 3
+incremental = false
+codegen-units = 1
+
+================
+File: programs/preset-gate/package.json
+================
+{
+  "license": "ISC",
+  "scripts": {
+    "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
+    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.32.1"
+  },
+  "devDependencies": {
+    "chai": "^4.3.4",
+    "mocha": "^9.0.3",
+    "ts-mocha": "^10.0.0",
+    "@types/bn.js": "^5.1.0",
+    "@types/chai": "^4.3.0",
+    "@types/mocha": "^9.0.0",
+    "typescript": "^5.7.3",
+    "prettier": "^2.6.2"
+  }
+}
+
+================
+File: programs/preset-gate/README.md
+================
+# Preset Gate — Solana On-Chain Program
+
+> **Status:** Stub — scaffolded for the Solana Graveyard Hackathon
+
+This Anchor program is a placeholder for future on-chain functionality.
+
+## Current MVP Approach
+Token gating is done **off-chain** in the Rust API backend:
+- The API queries the user's Solana wallet for `$AUDIO` SPL token balance via RPC
+- Tier (Free / Pro / Studio) is determined based on balance thresholds
+- Daily generation limits are enforced via Supabase
+
+## Post-Hackathon On-Chain Roadmap
+- **Generation Receipts:** Mint a PDA-based record each time a preset is generated (on-chain proof)
+- **$AUDIO Staking:** Allow users to stake $AUDIO into a vault for tier upgrades
+- **NFT Preset Marketplace:** Mint generated presets as NFTs (Metaplex)
+- **Program-Level Token Gate:** Move tier verification on-chain for trustless access control
+
+## Build
+```bash
+anchor build
+```
+
+## Test
+```bash
+anchor test
+```
+
+================
+File: programs/preset-gate/rust-toolchain.toml
+================
+[toolchain]
+channel = "1.89.0"
+components = ["rustfmt","clippy"]
+profile = "minimal"
+
+================
+File: programs/preset-gate/tsconfig.json
+================
+{
+  "compilerOptions": {
+    "types": ["mocha", "chai"],
+    "typeRoots": ["./node_modules/@types"],
+    "lib": ["es2015"],
+    "module": "commonjs",
+    "target": "es6",
+    "esModuleInterop": true
+  }
+}
+
+================
+File: .prettierrc
+================
+{
+  "semi": true,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "bracketSpacing": true,
+  "arrowParens": "always"
+}
+
+================
+File: turbo.json
+================
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}
+
+================
+File: .env.example
+================
+# ===================================
+# Preset.GG — Environment Variables
+# ===================================
+
+# --- Frontend (apps/web) ---
+# (Frontend env vars go in apps/web/.env)
+
+# --- Backend (apps/api) ---
+# Gemini AI
+GEMINI_API_KEY="your-gemini-api-key"
+
+# Supabase
+SUPABASE_URL="https://your-project.supabase.co"
+SUPABASE_SERVICE_KEY="your-supabase-service-key"
+
+# Solana
+SOLANA_RPC_URL="https://api.mainnet-beta.solana.com"
+AUDIO_TOKEN_MINT="9LzCMqDgTKYz9Drzqnpgee3SGa89up3a247ypMj2xrqM"
+
+# Server
+API_PORT=3001
+CORS_ORIGIN="http://localhost:3000"
+
+================
+File: .gitignore
+================
+# Dependencies
+node_modules/
+target/
+
+# Build outputs
+dist/
+build/
+coverage/
+.turbo/
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# OS
+.DS_Store
+*:Zone.Identifier
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Rust
+*.pdb
+**/*.rs.bk
+
+# Anchor / Solana
+.anchor/
+test-ledger/
+
+================
+File: package.json
+================
+{
+  "name": "preset-gg",
+  "private": true,
+  "version": "0.1.0",
+  "description": "AI-powered Audio-to-Preset generator — the Shazam for Synths",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\""
+  },
+  "devDependencies": {
+    "turbo": "^2.4.0",
+    "prettier": "^3.5.0"
+  },
+  "packageManager": "npm@10.0.0",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
+
+================
+File: README.md
+================
+# 🎛️ Preset.GG
+
+> **AI-powered Audio-to-Preset Generator — The "Shazam for Synths"**
+
+Preset.gg is a decentralized sound design copilot that allows music producers to search for any track on Audius, highlight a specific sound, and instantly generate a playable, royalty-free synthesizer preset (Vital or Xfer Serum).
+
+**Built for the Solana Graveyard Hackathon.**
+
+---
+
+## Architecture
+
+```
+[ React/Vite Frontend ]
+       |
+       |-- 1. Search/Stream ────────→ [ Audius API ]
+       |
+       |-- 2. Connect Wallet ───────→ [ Solana Wallet Adapter ]
+       |
+       |-- 3. Prompt + Audio URL ──→ [ Rust Backend (Axum) ]
+                                          |
+                                          |── 4. Verify $AUDIO ──→ [ Solana RPC ]
+                                          |── 5. Check Limits ───→ [ Supabase DB ]
+                                          |── 6. Audio + Prompt ─→ [ Gemini 3.1 ]
+                                          |── 7. Format .vital/.fxp
+                                          |── 8. Upload ─────────→ [ Supabase Storage ]
+                                          |
+[ Frontend ] ←── 9. Download URL ────────|
+```
+
+## Project Structure
+
+```
+Preset.GG/
+├── apps/
+│   ├── web/                 # React/Vite/Tailwind frontend
+│   │   └── src/
+│   │       ├── components/  # UI components (decomposed)
+│   │       ├── hooks/       # Custom React hooks
+│   │       ├── lib/         # API client, Audius SDK, Solana helpers
+│   │       ├── stores/      # Zustand state management
+│   │       ├── types/       # TypeScript type definitions
+│   │       └── styles/      # Tailwind + global styles
+│   │
+│   └── api/                 # Rust backend (Axum)
+│       └── src/
+│           ├── routes/      # HTTP endpoints
+│           ├── services/    # Gemini, Audius, Supabase integrations
+│           ├── solana/      # Token gating, tier logic
+│           ├── preset/      # .vital/.fxp file generation
+│           ├── middleware/   # CORS, auth, rate limiting
+│           ├── config/      # Environment configuration
+│           └── errors/      # Error types
+│
+├── packages/
+│   └── shared-types/        # Shared TypeScript types & constants
+│
+└── programs/
+    └── preset-gate/         # Solana on-chain program (Anchor stub)
+```
+
+## Prerequisites
+
+- **Node.js** >= 20
+- **Rust** (latest stable)
+- **Solana CLI** + **Anchor CLI** (for on-chain program)
+
+## Getting Started
+
+### 1. Clone & Install
+
+```bash
+git clone <repo-url>
+cd Preset.GG
+npm install
+```
+
+### 2. Environment Setup
+
+```bash
+# Copy env templates
+cp .env.example .env
+cp apps/web/.env.example apps/web/.env
+cp apps/api/.env.example apps/api/.env
+
+# Fill in your API keys
+```
+
+### 3. Run Frontend
+
+```bash
+cd apps/web
+npm run dev
+# → http://localhost:3000
+```
+
+### 4. Run Backend
+
+```bash
+cd apps/api
+cargo run
+# → http://localhost:3001
+```
+
+### 5. Run Both (Turborepo)
+
+```bash
+npm run dev
+```
+
+## Token Gating Tiers
+
+| Tier | $AUDIO Required | Daily Generations | Formats |
+|------|----------------|-------------------|---------|
+| Free (No Wallet) | — | 1 | Vital |
+| Basic (Wallet Connected) | < 100 | 3 | Vital |
+| Pro | 100+ | 15 | Vital + Serum |
+| Studio | 1,000+ | Unlimited | Vital + Serum |
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React, Vite, TailwindCSS v4 |
+| Backend | Rust, Axum |
+| Database | Supabase (PostgreSQL) |
+| Storage | Supabase Object Storage |
+| AI Engine | Google Gemini 3.1 Pro |
+| Audio Data | Audius JavaScript SDK |
+| Web3 | Solana, @solana/wallet-adapter |
+| On-Chain | Anchor Framework |
+
+## License
+
+MIT
+
+
+
+
+
+================================================================
+End of Codebase
+================================================================

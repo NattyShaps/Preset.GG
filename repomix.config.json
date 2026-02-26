@@ -1,0 +1,65 @@
+{
+  "output": {
+    "style": "plain",
+    "filePath": ".repomix/_PARLAYGG_ARCHITECTURE.txt",
+    "removeComments": true,
+    "showLineNumbers": false,
+    "topFilesLength": 10,
+    "compress": false
+  },
+  "ignore": {
+    "customPatterns": [
+      "**/s7-literature/**",
+      "**/data/**",
+      "**/output/**",
+      "**/exports/**",
+      "**/downloads/**",
+      "**/.claude/**",
+      "**/.cursor/**",
+      "**/.github/**",
+      "**/.notes/**",
+      "**/.project/**",
+      "**/.vscode/**",
+      "**/.git/**",
+      "**/.repomix/**",
+      "**/.next/**",
+      "**/node_modules/**",
+      "**/package-lock.json",
+      "**/yarn.lock",
+      "**/pnpm-lock.yaml",
+      "**/uv.lock",
+      "**/poetry.lock",
+      "**/Pipfile.lock",
+      "**/Cargo.lock",
+      "**/dist/**",
+      "**/build/**",
+      "**/target/**",
+      "**/out/**",
+      "**/venv/**",
+      "**/.venv/**",
+      "**/env/**",
+      "**/.env/**",
+      "**/.env",
+      "**/.pytest_cache/**",
+      "**/.mypy_cache/**",
+      "**/.tox/**",
+      "**/.coverage/**",
+      "**/coverage.xml",
+      "**/.nyc_output/**",
+      "**/__pycache__/**",
+      "**/training_runs/**",
+      "**/backup/**",
+      "**/.DS_Store",
+      "**/Thumbs.db",
+      "**/*.log",
+      "**/repomix.config.json",
+      "**/project/**",
+      "**.docs/**",
+
+      "**/*/*/*/**"
+    ]
+  },
+  "git": {
+    "respectGitignore": false
+  }
+}

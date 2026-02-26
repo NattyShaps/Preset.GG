@@ -1,29 +1,24 @@
-import { Search, Play } from 'lucide-react';
-
-export interface MockSong {
-  id: number;
-  title: string;
-  artist: string;
-}
+import { Search, Play, Loader2 } from 'lucide-react';
+import { formatDuration } from '@/lib/audius';
+import type { AudiusTrack } from '@/types/audius';
 
 interface SearchDropdownProps {
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
-  songs: MockSong[];
-  onSelectSong: (song: MockSong) => void;
+  results: AudiusTrack[];
+  isLoading: boolean;
+  onSelectTrack: (track: AudiusTrack) => void;
 }
 
 export default function SearchDropdown({
   searchQuery,
   onSearchQueryChange,
-  songs,
-  onSelectSong,
+  results,
+  isLoading,
+  onSelectTrack,
 }: SearchDropdownProps) {
-  const filteredSongs = songs.filter(
-    (s) =>
-      s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.artist.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const showEmpty = !isLoading && results.length === 0 && searchQuery.trim().length >= 2;
+  const showHint = searchQuery.trim().length < 2;
 
   return (
     <div className="absolute top-full left-0 right-10 mt-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2 z-20 shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
@@ -37,25 +32,61 @@ export default function SearchDropdown({
           className="w-full outline-none text-sm p-1 bg-transparent text-white placeholder-white/50"
           autoFocus
         />
+        {isLoading && (
+          <Loader2 className="w-4 h-4 text-white/60 animate-spin ml-2 shrink-0" />
+        )}
       </div>
 
-      <div className="max-h-48 overflow-y-auto rounded-lg">
-        {filteredSongs.map((song) => (
-          <div
-            key={song.id}
-            onClick={() => onSelectSong(song)}
-            className="p-2 hover:bg-white/20 cursor-pointer text-sm flex items-center border-b border-white/10 last:border-0 text-white transition-colors rounded-lg mb-1"
-          >
-            <Play className="w-3 h-3 mr-2 opacity-60" />
-            <span className="font-bold mr-1">{song.title}</span>
-            <span className="opacity-75">by {song.artist}</span>
+      <div className="max-h-64 overflow-y-auto rounded-lg">
+        {showHint && (
+          <div className="p-4 text-center text-white/50 text-sm">
+            Type to search Audius...
           </div>
-        ))}
-        {filteredSongs.length === 0 && (
+        )}
+
+        {showEmpty && (
           <div className="p-4 text-center text-white/60 text-sm">
             No tracks found.
           </div>
         )}
+
+        {results.map((track) => (
+          <div
+            key={track.id}
+            onClick={() => onSelectTrack(track)}
+            className="p-2 hover:bg-white/20 cursor-pointer text-sm flex items-center border-b border-white/10 last:border-0 text-white transition-colors rounded-lg mb-0.5"
+          >
+            {/* Artwork thumbnail */}
+            {track.artworkUrl ? (
+              <img
+                src={track.artworkUrl}
+                alt=""
+                className="w-10 h-10 rounded-md mr-3 object-cover shrink-0 bg-white/10"
+                loading="lazy"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-md mr-3 bg-white/10 shrink-0 flex items-center justify-center">
+                <Play className="w-4 h-4 opacity-40" />
+              </div>
+            )}
+
+            {/* Track info */}
+            <div className="flex-1 min-w-0">
+              <div className="font-bold truncate">{track.title}</div>
+              <div className="opacity-60 text-xs truncate">{track.artist}</div>
+            </div>
+
+            {/* Duration — highlight long tracks (>3 min) */}
+            <span className={`text-xs ml-3 shrink-0 tabular-nums ${
+              track.duration > 180
+                ? 'text-yellow-300/80'
+                : 'opacity-50'
+            }`}>
+              {formatDuration(track.duration)}
+              {track.duration > 3600 && ' 🎧'}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
