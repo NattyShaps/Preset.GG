@@ -7,6 +7,8 @@
 > Estimated total time: 10 days (hackathon timeline)
 >
 > Last Updated: February 25, 2026
+>
+> **Audius API context reviewed:** SDK v13.1.0, REST API at `api.audius.co/v1`, stream endpoints confirmed working with CORS-friendly content nodes.
 
 ---
 
@@ -53,31 +55,51 @@ This is the most important milestone. If any of these three proofs fail, we pivo
 
 **What we're proving:** Can we search Audius and get a playable audio URL in the browser?
 
-- Install `@audius/sdk` in a scratch file or directly in `apps/web`
-- Call `sdk.tracks.searchTracks({ query: "Skrillex" })`
+**Pre-step:** Register for an Audius API key at [api.audius.co/plans](https://api.audius.co/plans) or [audius.co/settings](https://audius.co/settings). Free tier gives 10 req/sec and 500K/month — plenty for our needs. We need an `apiKey` (read-only, safe for frontend) and optionally a `bearerToken` (for writes — we won't need this).
+
+- Install `@audius/sdk` in `apps/web`
+- Initialize SDK with `sdk({ apiKey: 'YOUR_KEY' })` (note: SDK uses `apiKey`, NOT `appName` — the scaffolded `lib/audius.ts` needs updating)
+- Call `audiusSdk.tracks.searchTracks({ query: "Skrillex" })` (or equivalent)
 - Log the results — do we get track objects with IDs, titles, artwork?
-- Call `sdk.tracks.getTrackStreamUrl({ trackId })` or equivalent
-- Try to play that URL in a plain HTML5 `<audio>` element
-- Does it play? Does it redirect? What headers come back?
+- **Key discovery from API testing:** Track objects already include a pre-signed `stream.url` field pointing directly to a content node, plus `stream.mirrors` for fallback. We may NOT need a separate "get stream URL" call.
+- Try to play the `stream.url` from the track object in a plain HTML5 `<audio>` element
+- Also test the REST endpoint directly: `GET https://api.audius.co/v1/tracks/{trackId}/stream` — this returns a 302 redirect to a signed content node URL
+- **Test image loading:** Artwork comes with `mirrors` array. Try loading artwork — does it work on first try? Do we need mirror retry?
 - Document findings: what works, what doesn't, what the actual API shape looks like
+
+**What we already know from API testing:**
+- `GET /v1/tracks/search?query=...` returns full track objects with `id`, `title`, `duration`, `genre`, `user.name`, `artwork` (with mirrors), `stream` (with `url` + `mirrors`), `access` info
+- Audio is MP3 format, 320kbps, 48kHz (a 226-second Skrillex track was 8.7MB)
+- Content nodes return `Access-Control-Allow-Origin: *` — CORS may not be as problematic as initially feared
+- The API works without an `x-api-key` header, but we should register for one to avoid rate limits
 
 **Success criteria:** We can search and get a real stream URL that plays audio.
 
-**Failure contingency:** If the SDK is broken or deprecated, fall back to raw Audius REST API calls (`https://discoveryprovider.audius.co/v1/tracks/search?query=...`).
+**Failure contingency:** If the SDK is broken or deprecated, fall back to raw Audius REST API calls (`https://api.audius.co/v1/tracks/search?query=...` with `x-api-key` header).
 
 ### Spike B — Audio Proxy & Wavesurfer (1–2 hours)
 
-**What we're proving:** Can our Rust backend proxy Audius audio, and can wavesurfer render a waveform from it?
+**What we're proving:** Can wavesurfer render a waveform from Audius audio? Do we need a proxy, or can we use the pre-signed stream URL directly?
 
-- Add a quick `GET /api/stream/:trackId` route in the Rust backend
-- Rust fetches the audio from Audius using `reqwest`, pipes the bytes back with `Content-Type: audio/mpeg` and `Access-Control-Allow-Origin: *`
-- On the frontend, point wavesurfer.js at `http://localhost:3001/api/stream/{trackId}`
+**Test 1 — Direct stream URL (try this first):**
+- Track objects include a pre-signed `stream.url` pointing directly to a content node
+- Content nodes return `Access-Control-Allow-Origin: *` headers
+- Point wavesurfer.js directly at the `stream.url` from a track object
 - Does the waveform render? Can we play it? Can we scrub?
+- If this works, we can skip building a proxy route for frontend playback (still need backend audio fetch for Gemini pipeline)
+
+**Test 2 — Proxy route (if direct fails):**
+- Add a quick `GET /api/stream/{trackId}` route in the Rust backend
+- Rust calls `GET https://api.audius.co/v1/tracks/{trackId}/stream`, follows the 302 redirect, fetches the audio bytes
+- Pipe bytes back to frontend with `Content-Type: audio/mpeg` and `Access-Control-Allow-Origin: *`
+- Point wavesurfer at `http://localhost:3001/api/stream/{trackId}`
+- Does the waveform render? Can we play it? Can we scrub?
+
 - Test with 2–3 different tracks to make sure it's not a fluke
 
-**Success criteria:** Wavesurfer renders a waveform and plays audio from our proxy endpoint.
+**Success criteria:** Wavesurfer renders a waveform and plays audio (via either direct URL or proxy).
 
-**Failure contingency:** If wavesurfer can't handle streamed audio from our proxy, fall back to a simpler player (HTML5 `<audio>` element with a custom progress bar and manual timestamp text inputs instead of a visual waveform).
+**Failure contingency:** If wavesurfer can't handle streamed audio from either approach, fall back to a simpler player (HTML5 `<audio>` element with a custom progress bar and manual timestamp text inputs instead of a visual waveform).
 
 ### Spike C — Gemini Audio-to-JSON (1–2 hours)
 
@@ -113,9 +135,11 @@ This is the most important milestone. If any of these three proofs fail, we pivo
 
 **Task 1.1 — Install & Initialize Audius SDK**
 - Install `@audius/sdk` in `apps/web`
-- Create proper SDK instance in `lib/audius.ts` with app name registration
-- Handle SDK initialization (it discovers API endpoints on boot)
-- Export helper functions: `searchTracks()`, `getStreamUrl()`
+- Create proper SDK instance in `lib/audius.ts` using `sdk({ apiKey: 'YOUR_KEY' })` (NOT `appName` — this was the old API)
+- For read-only frontend use, only `apiKey` is needed (safe to expose in client code)
+- `bearerToken` is only needed for write operations (uploads, favorites) — we don't need it
+- Handle SDK initialization and export helper functions: `searchTracks()`, `getStreamUrl()`
+- **Note:** Based on API testing, we may be able to use the REST API directly (`fetch` with `x-api-key` header) if the SDK proves problematic. The REST API at `https://api.audius.co/v1` is well-documented and straightforward.
 
 **Task 1.2 — Wire Up Real Search**
 - Update `hooks/useAudiusSearch.ts` to call the real Audius SDK
@@ -125,34 +149,50 @@ This is the most important milestone. If any of these three proofs fail, we pivo
 
 **Task 1.3 — Update Search UI Components**
 - Update `SearchDropdown.tsx`: replace mock data with real results
-- Display track artwork thumbnails
+- Display track artwork thumbnails using an `AudiusImage` component (see Task 1.3b)
 - Show track duration formatted as `mm:ss`
 - Show artist name
 - Handle "no results found" and "searching..." loading states
 
+**Task 1.3b — Create `AudiusImage` Component (Mirror Retry)**
+- Audius docs strongly recommend NEVER using raw `<img>` for Audius content
+- Artwork URLs include a `mirrors` array of alternate content node hosts
+- Create `components/ui/AudiusImage.tsx`:
+  - Accepts `src`, `mirrors[]`, and standard img props
+  - On load failure, swap the URL host with the next mirror and retry
+  - Cycle through all mirrors before showing a fallback/placeholder
+  - Pick the size variant (`150x150`, `480x480`, `1000x1000`) closest to the rendered size
+- Use this component everywhere we display Audius artwork (search results, selected song badge, dashboard)
+
 **Task 1.4 — Track Selection Flow**
 - When user clicks a track, store the full track object (not just a string name)
-- We need track ID and stream URL downstream for generation
-- Update `SelectedSongBadge.tsx` to show artwork + title + artist
+- We need: `id`, `title`, `user.name`, `duration`, `artwork`, `stream.url`, `stream.mirrors`
+- **Key insight:** The track object already includes a pre-signed `stream.url` — no separate API call needed to get a playable URL
+- Update `SelectedSongBadge.tsx` to show artwork (via `AudiusImage`) + title + artist
 - Consider introducing Zustand store at this point for cross-component state
 
-**Task 1.5 — Build Audio Proxy Route (Rust Backend)**
+**Task 1.5 — Build Audio Proxy Route (Rust Backend) — If Needed**
+- **May be optional for frontend playback:** If Spike B proves that wavesurfer can load audio directly from Audius's pre-signed `stream.url` (content nodes do send `Access-Control-Allow-Origin: *`), this proxy is only needed for the backend Gemini pipeline (Milestone 2)
+- **If needed for frontend playback, or for backend use regardless:**
 - Add `GET /api/stream/{trackId}` to the Rust backend
-- Rust fetches audio from Audius using `reqwest`
-- Pipe bytes back to frontend with proper headers:
+- Rust calls `GET https://api.audius.co/v1/tracks/{trackId}/stream` (with `x-api-key` header)
+- Follow the 302 redirect server-side, fetch audio bytes from the content node
+- Pipe bytes back to client with proper headers:
   - `Content-Type: audio/mpeg`
   - `Access-Control-Allow-Origin: *`
   - `Accept-Ranges: bytes` (for seeking support)
-- Handle Audius redirects (follow them server-side)
 - Add a **15-second timeout** on the upstream fetch
 - Add a **max file size check** (reject if > 20MB to prevent abuse)
+- **Note:** The stream endpoint returns signed URLs that handle auth automatically — no need to construct content node URLs manually
 
 ### Day 2: Waveform Player & Timestamp Selection
 
 **Task 1.6 — Install & Set Up Wavesurfer**
 - Install `wavesurfer.js` and `@wavesurfer/react` in `apps/web`
 - Create `components/player/WaveformPlayer.tsx`
-- Configure wavesurfer to load audio from our proxy: `http://localhost:3001/api/stream/{trackId}`
+- Configure wavesurfer to load audio from:
+  - **Option A (preferred):** Direct Audius `stream.url` from the track object (if Spike B confirms this works)
+  - **Option B (fallback):** Our proxy endpoint `http://localhost:3001/api/stream/{trackId}`
 - Style the waveform to match the purple/magenta gradient aesthetic
 
 **Task 1.7 — Playback Controls**
@@ -229,9 +269,11 @@ This is the most important milestone. If any of these three proofs fail, we pivo
 - Enforce in the relevant service functions
 
 **Task 2.4 — Implement Audius Audio Fetching (`services/audius.rs`)**
-- Use `reqwest` to fetch audio from Audius
-- Follow redirects (Audius content nodes use 302 redirects)
-- Enforce size limit: if response body exceeds `MAX_AUDIO_SIZE_BYTES`, abort and return error
+- Use `reqwest` to fetch audio from Audius for the Gemini pipeline
+- **Recommended approach:** Call `GET https://api.audius.co/v1/tracks/{trackId}/stream` with `x-api-key` header — this returns a 302 redirect to a signed content node URL. Configure `reqwest` to follow redirects automatically.
+- **Alternative:** If the frontend passes the pre-signed `stream.url` from the track object, the backend can fetch directly from that URL (skips the redirect hop)
+- Audio format is MP3 (320kbps, 48kHz) — confirmed from API testing
+- Enforce size limit: if response body exceeds `MAX_AUDIO_SIZE_BYTES` (10MB ≈ 3.5 minutes at 320kbps), abort and return error with message "This track is too long. Please select a shorter region."
 - No ffmpeg, no clipping — we pass the full audio to Gemini
 - If timestamps are provided, we include them in the Gemini prompt instead
 - Return the audio as `Vec<u8>` (raw bytes)
@@ -673,8 +715,8 @@ These apply across all milestones and should be implemented as we go, not as a s
 |---|:-:|:-:|---|
 | **Gemini returns unparseable JSON** | High | High | Strip markdown fences, 1 retry with nudge prompt, template approach guarantees structure |
 | **Generated presets sound bad** | Medium | High | Iterate on system prompt in M2/M3. Template approach + parameter clamping ensures playable sound. Accept "close enough" for hackathon. |
-| **Audius SDK has issues** | Medium | Medium | Fallback to raw REST API. Spike (M0.5) catches this early. |
-| **Wavesurfer CORS problems** | Low (mitigated) | Medium | Audio proxy through Rust backend eliminates this. Spike (M0.5) verifies. |
+| **Audius SDK has issues** | Medium | Medium | Fallback to raw REST API (`api.audius.co/v1`). API confirmed working via direct testing. Spike (M0.5) catches SDK-specific issues early. |
+| **Wavesurfer CORS problems** | Low (mitigated) | Medium | Content nodes send `Access-Control-Allow-Origin: *`. Pre-signed `stream.url` may work directly. Audio proxy through Rust backend as fallback. Spike B tests both approaches. |
 | **Solana RPC rate limits** | Low | Low | Use Helius/Triton free tier for reliable RPC. Cache balance for 60 seconds. |
 | **Serum .fxp doesn't work** | High | Low | Already de-scoped. Button shows "Beta" toast. |
 | **Wallet adapter + React 19 conflicts** | Medium | Medium | Check peer dependencies early in M4. May need adapter version pinning. |
@@ -709,6 +751,50 @@ Everything in Milestone 5 is polish. If we nail M0.5 through M4, we have a winni
 | Mobile responsive design | P2 |
 | DAW VST/AU plugin (C++/JUCE) | P3 |
 | NFT preset marketplace | P3 |
+
+---
+
+## Audius API Quick Reference
+
+Key findings from documentation and live API testing (February 25, 2026):
+
+| Resource | URL |
+|---|---|
+| REST API Base | `https://api.audius.co/v1` |
+| API Plans (get keys) | `https://api.audius.co/plans` |
+| SDK (npm) | `@audius/sdk` v13.1.0 |
+| Swagger/OpenAPI Spec | `https://api.audius.co/v1/swagger.yaml` |
+| Agent Context | `https://audius.co/agents.md` |
+| SDK Code Guide | `https://audius.co/skill.md` |
+
+**Key Endpoints:**
+- `GET /v1/tracks/search?query=...&limit=...` — Search tracks (returns full track objects with artwork, stream URLs)
+- `GET /v1/tracks/{trackId}` — Get single track details
+- `GET /v1/tracks/{trackId}/stream` — Stream audio (302 redirect to signed content node URL)
+- `GET /v1/tracks/trending?limit=...` — Trending tracks
+
+**SDK Initialization:**
+```js
+import { sdk } from '@audius/sdk'
+const audiusSdk = sdk({ apiKey: 'YOUR_API_KEY' }) // bearerToken only needed for writes
+```
+
+**Track Object Shape (key fields):**
+```
+id, title, duration (seconds), genre, mood, user.name, user.handle,
+artwork.{150x150, 480x480, 1000x1000, mirrors[]},
+stream.{url, mirrors[]},
+access.{stream, download},
+is_stream_gated, is_downloadable, play_count
+```
+
+**Audio Format:** MP3, 320kbps, 48kHz. ~2.4MB per minute.
+
+**Auth:** `x-api-key` header. Free tier: 10 req/sec, 500K/month. API works without key but may be rate-limited.
+
+**CORS:** Content nodes return `Access-Control-Allow-Origin: *`. The 302 redirect from `api.audius.co` may still require a proxy for Web Audio API contexts.
+
+**Images:** Always use mirror retry. Never raw `<img>`. Artwork includes `mirrors[]` for fallback hosts.
 
 ---
 
