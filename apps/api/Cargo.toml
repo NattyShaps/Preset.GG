@@ -39,8 +39,3 @@ flate2 = "1"
 
 # UUID generation
 uuid = { version = "1", features = ["v4"] }
-
-[patch.crates-io]
-# Railway's default Rust/Cargo (1.84) cannot parse time-core 0.1.8 (edition2024).
-# Pinning avoids the resolver selecting an incompatible manifest.
-time-core = "=0.1.6"
