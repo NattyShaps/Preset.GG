@@ -10,6 +10,7 @@ import TimeRangeSelector, { TIME_RANGE_THRESHOLD, type TimeRange } from './compo
 import HowItWorksModal from './components/ui/HowItWorksModal';
 import SuccessModal from './components/preset/SuccessModal';
 import { useAudiusSearch } from './hooks/useAudiusSearch';
+import { usePresetGeneration } from './hooks/usePresetGeneration';
 import { getStreamUrl } from './lib/audius';
 import type { AudiusTrack } from './types/audius';
 
@@ -24,7 +25,11 @@ export default function App() {
   // Confirmed (locked) time range — only set when user hits ✓ / Enter
   const [confirmedRange, setConfirmedRange] = useState<TimeRange | null>(null);
 
+  // Generation error shown inline below the prompt
+  const [generationError, setGenerationError] = useState<string | null>(null);
+
   const audiusSearch = useAudiusSearch();
+  const presetGeneration = usePresetGeneration();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   // Track whether the audio src has been set (to avoid re-setting on pause/play)
@@ -48,11 +53,44 @@ export default function App() {
 
   // ── Event handlers ────────────────────────────────────────────────────
 
-  const handleGenerate = (e?: React.FormEvent) => {
+  const handleGenerate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!prompt && !selectedTrack) return;
+
+    // Clear any previous error
+    setGenerationError(null);
     setAppState('generating');
-    setTimeout(() => setAppState('success'), 3000);
+
+    // Pause audio during generation
+    if (audioRef.current && isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+
+    await presetGeneration.generate({
+      prompt: prompt || undefined,
+      trackId: selectedTrack?.id || undefined,
+      startTimestamp: confirmedRange?.start,
+      endTimestamp: confirmedRange?.end,
+    });
+
+    // Check result after generate completes
+    // Note: generate() sets its own state, we check it here
+  };
+
+  // Sync generation hook state → appState
+  // We use the hook's state directly rather than useEffect to keep it simple
+  if (presetGeneration.result && appState === 'generating') {
+    setAppState('success');
+  }
+  if (presetGeneration.error && appState === 'generating') {
+    setGenerationError(presetGeneration.error);
+    setAppState('idle');
+  }
+
+  const handleSuccessClose = () => {
+    presetGeneration.reset();
+    setAppState('idle');
   };
 
   const handleSearchToggle = () => {
@@ -67,6 +105,7 @@ export default function App() {
   const handleSelectTrack = (track: AudiusTrack) => {
     setSelectedTrack(track);
     setConfirmedRange(null);
+    setGenerationError(null);
     setAppState('idle');
     audiusSearch.clear();
     loadedSrcRef.current = null;
@@ -79,6 +118,7 @@ export default function App() {
   const handleClearTrack = () => {
     setSelectedTrack(null);
     setConfirmedRange(null);
+    setGenerationError(null);
     loadedSrcRef.current = null;
     if (audioRef.current) {
       audioRef.current.pause();
@@ -137,8 +177,6 @@ export default function App() {
     setConfirmedRange(range);
     if (audioRef.current && range) {
       audioRef.current.currentTime = range.start;
-      // If currently playing, keep playing from new start
-      // If paused, just seek — user will press play
     }
   };
 
@@ -166,12 +204,19 @@ export default function App() {
 
         <PromptInput
           prompt={prompt}
-          onPromptChange={setPrompt}
+          onPromptChange={(v) => { setPrompt(v); setGenerationError(null); }}
           disabled={isDisabled}
           onSearchToggle={handleSearchToggle}
           onSubmit={handleGenerate}
           canSubmit={!!(prompt || selectedTrack)}
         />
+
+        {/* Generation error */}
+        {generationError && appState === 'idle' && (
+          <div className="mt-2 text-red-300 text-xs text-center max-w-sm">
+            {generationError}
+          </div>
+        )}
 
         {selectedTrack && appState !== 'searching' && (
           <div className="flex flex-col items-center">
@@ -226,7 +271,12 @@ export default function App() {
 
       {/* Modals */}
       {showHowItWorks && <HowItWorksModal onClose={() => setShowHowItWorks(false)} />}
-      {appState === 'success' && <SuccessModal onClose={() => setAppState('idle')} />}
+      {appState === 'success' && presetGeneration.result && (
+        <SuccessModal
+          result={presetGeneration.result}
+          onClose={handleSuccessClose}
+        />
+      )}
     </div>
   );
 }

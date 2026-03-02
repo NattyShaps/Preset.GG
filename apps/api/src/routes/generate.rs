@@ -6,14 +6,11 @@
 ///   3. Enforce audio size budget
 ///   4. Send audio + prompt to Gemini
 ///   5. Merge Gemini output into Init.vital template
-///   6. [STUBBED] Upload to Supabase Storage
-///   7. [STUBBED] Record generation in Supabase DB
-///   8. Return preset info + download URL
-///
-/// ⚠️  Supabase steps are stubbed until M3. The endpoint returns a mock
-///     download URL that will not resolve until Supabase is wired up.
+///   6. Return preset file inline as base64 (direct download mode)
+///   7. [M3 TODO] Upload to Supabase Storage + record in DB
 
 use axum::{extract::State, Json};
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -49,6 +46,8 @@ pub struct GenerateResponse {
     pub download_url: String,
     pub file_name: String,
     pub format: String,
+    /// Base64-encoded .vital file bytes for direct client-side download.
+    pub preset_data: String,
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
@@ -202,15 +201,14 @@ pub async fn generate_preset(
 
     tracing::info!("Generated .vital file: {} bytes", vital_bytes.len());
 
-    // ── Steps 6–7: [STUBBED] Supabase upload + DB record ─────────────────────
-    //
-    // TODO (M3): Upload `vital_bytes` to Supabase Storage, record in DB.
-    // For now, generate a UUID and return a placeholder download URL.
+    // ── Step 6: Encode file for direct download ──────────────────────────────
+
+    let preset_data = BASE64.encode(&vital_bytes);
 
     let preset_id = Uuid::new_v4().to_string();
     let file_name = format!("preset_{}.vital", &preset_id[..8]);
 
-    // [M3 TODO] Replace this mock URL with the real Supabase Storage public URL.
+    // [M3 TODO] Upload vital_bytes to Supabase Storage, record in DB.
     let download_url = format!("/api/presets/{}/download", preset_id);
 
     tracing::info!(
@@ -220,13 +218,14 @@ pub async fn generate_preset(
         vital_bytes.len()
     );
 
-    // ── Step 8: Return ────────────────────────────────────────────────────────
+    // ── Step 7: Return ────────────────────────────────────────────────────────
 
     Ok(Json(GenerateResponse {
         preset_id,
         download_url,
         file_name,
         format,
+        preset_data,
     }))
 }
 

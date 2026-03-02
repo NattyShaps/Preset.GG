@@ -1,10 +1,39 @@
 import { X, FileAudio } from 'lucide-react';
+import type { GenerationResult } from '@/hooks/usePresetGeneration';
 
 interface SuccessModalProps {
+  result: GenerationResult;
   onClose: () => void;
 }
 
-export default function SuccessModal({ onClose }: SuccessModalProps) {
+/**
+ * Decode base64 preset data and trigger a browser file download.
+ */
+function downloadPreset(result: GenerationResult) {
+  try {
+    // Decode base64 to raw bytes.
+    const binaryString = atob(result.presetData);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    // Create a Blob and trigger download.
+    const blob = new Blob([bytes], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = result.fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('Download failed:', err);
+  }
+}
+
+export default function SuccessModal({ result, onClose }: SuccessModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="xp-outset w-[420px] shadow-[2px_2px_15px_rgba(0,0,0,0.5)] flex flex-col text-black">
@@ -25,21 +54,21 @@ export default function SuccessModal({ onClose }: SuccessModalProps) {
             <FileAudio className="w-10 h-10 text-blue-600 mr-4 shrink-0" strokeWidth={1.5} />
             <div className="text-sm">
               <p className="mb-3">Do you want to open or save this file?</p>
-              <p className="mb-1">Name: <strong>preset_generated.vital</strong></p>
-              <p>Type: Vital Synth Preset</p>
+              <p className="mb-1">Name: <strong>{result.fileName}</strong></p>
+              <p>Type: {result.format === 'vital' ? 'Vital Synth Preset' : 'Serum Preset'}</p>
             </div>
           </div>
 
           {/* Buttons */}
           <div className="flex justify-end space-x-2 mt-auto">
             <button
-              onClick={onClose}
+              onClick={() => downloadPreset(result)}
               className="px-5 py-1 bg-[#ECE9D8] border-2 border-t-white border-l-white border-b-gray-500 border-r-gray-500 active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white text-sm focus:outline-black focus:outline-1 focus:outline-offset-[-4px]"
             >
               Open
             </button>
             <button
-              onClick={onClose}
+              onClick={() => downloadPreset(result)}
               className="px-5 py-1 bg-[#ECE9D8] border-2 border-t-white border-l-white border-b-gray-500 border-r-gray-500 active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white text-sm focus:outline-black focus:outline-1 focus:outline-offset-[-4px]"
             >
               Save

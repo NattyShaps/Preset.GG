@@ -31,8 +31,8 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Request failed' }));
-    throw new Error(error.message || `HTTP ${response.status}`);
+    const errBody = await response.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(errBody.error || errBody.message || `HTTP ${response.status}`);
   }
 
   return response.json();
