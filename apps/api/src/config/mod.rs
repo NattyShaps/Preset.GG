@@ -1,10 +1,28 @@
 use serde::Deserialize;
 
+// ── Audio budget policy ──────────────────────────────────────────────────────
+
+/// Maximum audio size we'll fetch from Audius and send to Gemini (10 MB).
+/// At 320 kbps MP3, this is roughly 4 minutes of audio.
+pub const MAX_AUDIO_SIZE_BYTES: usize = 10_485_760;
+
+/// Timeout for fetching audio from Audius (seconds).
+pub const AUDIUS_FETCH_TIMEOUT_SECS: u64 = 15;
+
+/// Timeout for Gemini API requests (seconds).
+pub const GEMINI_REQUEST_TIMEOUT_SECS: u64 = 30;
+
+/// How many times to retry a Gemini call on JSON parse failure.
+pub const GEMINI_MAX_RETRIES: u32 = 1;
+
 /// Application configuration, parsed from environment variables.
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
     /// Gemini API key
     pub gemini_api_key: String,
+
+    /// Audius API key
+    pub audius_api_key: String,
 
     /// Supabase project URL
     pub supabase_url: String,
@@ -38,6 +56,8 @@ impl AppConfig {
 
         Ok(Self {
             gemini_api_key: std::env::var("GEMINI_API_KEY")?,
+            audius_api_key: std::env::var("AUDIUS_API_KEY")
+                .unwrap_or_default(),
             supabase_url: std::env::var("SUPABASE_URL")?,
             supabase_service_key: std::env::var("SUPABASE_SERVICE_KEY")?,
             solana_rpc_url: std::env::var("SOLANA_RPC_URL")

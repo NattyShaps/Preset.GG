@@ -3,7 +3,7 @@
  * Using raw fetch instead of @audius/sdk to avoid 1.8MB bundle overhead.
  */
 
-import { AUDIUS_API_BASE, AUDIUS_API_KEY, AUDIUS_SEARCH_LIMIT } from './constants';
+import { API_URL, AUDIUS_API_BASE, AUDIUS_API_KEY, AUDIUS_SEARCH_LIMIT } from './constants';
 import type { AudiusTrack } from '@/types/audius';
 
 /**
@@ -39,8 +39,7 @@ export async function searchTracks(
  * results can expire if the user waits before pressing play.
  */
 export function getStreamUrl(trackId: string): string {
-  const base = `${AUDIUS_API_BASE}/tracks/${trackId}/stream`;
-  return AUDIUS_API_KEY ? `${base}?app_name=Preset.gg` : base;
+  return `${API_URL}/api/stream/${trackId}`;
 }
 
 /**

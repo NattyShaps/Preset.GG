@@ -27,7 +27,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("Starting Preset.gg API server on {}", addr);
 
     // Build router with CORS
-    let app = routes::create_router()
+    let app = routes::create_router(config.clone())
         .layer(middleware::cors::cors_layer(&config.cors_origin));
 
     // Start server
