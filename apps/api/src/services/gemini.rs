@@ -5,6 +5,9 @@
 ///
 /// Key technique (from spike): provide a template JSON and ask Gemini to
 /// fill in values. This prevents verbose output and guarantees parseable JSON.
+///
+/// All parameter names match real Vital keys. Values are normalized 0.0–1.0;
+/// the Rust merge layer converts to actual Vital ranges.
 
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
@@ -17,10 +20,6 @@ const GEMINI_API_BASE: &str =
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
 // ── System Prompt ────────────────────────────────────────────────────────────
-//
-// This prompt uses the template approach confirmed in Spike C:
-// Providing a filled-in JSON template and asking Gemini to modify the values
-// produces compact, parseable output without markdown fences or truncation.
 
 const SYSTEM_PROMPT: &str = r#"You are an expert synthesizer sound designer with deep knowledge of subtractive, FM, and wavetable synthesis. Your task is to analyze audio and determine which synthesizer parameters would best recreate or complement that sound in the Vital synthesizer.
 
@@ -34,24 +33,31 @@ PARAMETER RULES:
 - ALL values must be normalized between 0.0 and 1.0 (inclusive).
 - 0.0 = minimum, 1.0 = maximum for each parameter.
 - Oscillator wave_frame: 0.0=sine, 0.25=triangle, 0.5=sawtooth, 0.75=square, 1.0=noise.
-- Envelope attack/decay/release: 0.0=instant, 1.0=very slow (4 seconds).
+- Oscillator level: 0.0=silent, 0.707=default (-3dB), 1.0=maximum.
+- Oscillator pan: 0.0=hard left, 0.5=center, 1.0=hard right.
+- Oscillator tune: 0.5=center (0 cents), 0.0=−100 cents, 1.0=+100 cents.
+- Oscillator transpose: 0.5=0 semitones, 0.0=−48 semi, 1.0=+48 semi.
+- Oscillator unison_voices: 0.0=1 voice, 1.0=16 voices.
+- Envelope attack/decay/release: 0.0=instant, 0.25=fast (~1s), 0.5=medium (~2s), 1.0=very slow (~4s).
 - Envelope sustain: 0.0=silent, 1.0=full volume held.
-- Filter cutoff: 0.0=fully closed (dark/muffled), 1.0=fully open (bright).
-- LFO frequency: 0.0=very slow (sub-Hz), 1.0=very fast (audio rate).
-- Mix parameters (reverb_mix, delay_mix, etc.): 0.0=dry, 1.0=fully wet.
-- Level parameters: 0.0=silent, 1.0=maximum.
+- Filter cutoff: 0.0=fully closed (20Hz), 0.5=middle (~1kHz), 1.0=fully open (20kHz).
+- Filter resonance: 0.0=none, 1.0=maximum resonance/self-oscillation.
+- Filter blend: 0.0=low-pass, 0.5=band-pass, 1.0=high-pass.
+- LFO frequency: 0.0=very slow (sub-Hz), 0.5=moderate, 1.0=very fast (audio rate).
+- Effect dry_wet/mix: 0.0=fully dry (off), 1.0=fully wet.
+- Distortion drive: 0.0=clean, 1.0=maximum distortion.
 
 SOUND DESIGN GUIDELINES BY TYPE:
-- Heavy bass: osc_1_wave_frame ~0.5-0.75 (saw/square), filter_1_cutoff ~0.3-0.5, filter_1_resonance ~0.3-0.6, env_1_attack ~0.0, env_1_decay ~0.3-0.5, env_1_sustain ~0.5-0.8, reverb_mix ~0.0-0.1
-- Bright lead: osc_1_wave_frame ~0.5 (saw), filter_1_cutoff ~0.7-0.9, env_1_attack ~0.0-0.1, env_1_sustain ~0.7-1.0, reverb_mix ~0.1-0.3
-- Ethereal pad: osc_1_wave_frame ~0.0-0.25 (sine/triangle), filter_1_cutoff ~0.4-0.7, env_1_attack ~0.4-0.8, env_1_release ~0.5-0.9, reverb_mix ~0.4-0.8, chorus_mix ~0.2-0.5
-- Pluck: env_1_attack ~0.0, env_1_decay ~0.1-0.3, env_1_sustain ~0.0-0.2, env_1_release ~0.1-0.3
-- FM bass (Skrillex-style): osc_1_wave_frame ~0.5-0.75, filter_1_cutoff ~0.2-0.4, filter_1_resonance ~0.5-0.8, distortion_amount ~0.3-0.6, lfo_1_amount ~0.3-0.6
+- Heavy bass: osc_1_wave_frame ~0.5-0.75 (saw/square), filter_1_cutoff ~0.3-0.5, filter_1_resonance ~0.3-0.6, env_1_attack ~0.0, env_1_decay ~0.1-0.2, env_1_sustain ~0.5-0.8, reverb_dry_wet ~0.0-0.1
+- Bright lead: osc_1_wave_frame ~0.5 (saw), filter_1_cutoff ~0.7-0.9, env_1_attack ~0.0-0.05, env_1_sustain ~0.7-1.0, reverb_dry_wet ~0.1-0.3
+- Ethereal pad: osc_1_wave_frame ~0.0-0.25 (sine/tri), filter_1_cutoff ~0.4-0.7, env_1_attack ~0.2-0.5, env_1_release ~0.3-0.6, reverb_dry_wet ~0.4-0.8, chorus_dry_wet ~0.2-0.5
+- Pluck: env_1_attack ~0.0, env_1_decay ~0.05-0.15, env_1_sustain ~0.0-0.2, env_1_release ~0.05-0.15
+- FM bass (Skrillex-style): osc_1_wave_frame ~0.5-0.75, osc_2_level ~0.3-0.6, filter_1_cutoff ~0.2-0.4, filter_1_resonance ~0.5-0.8, distortion_drive ~0.3-0.6
 
 OUTPUT FORMAT — CRITICAL:
 Output ONLY this exact JSON structure with your values filled in. No other text, no explanation, no markdown, no code fences. Just the raw JSON:
 
-{"osc_1_wave_frame":0.5,"osc_1_level":0.8,"osc_1_pan":0.5,"osc_1_tune":0.5,"osc_1_transpose":0.5,"osc_2_wave_frame":0.25,"osc_2_level":0.0,"osc_2_pan":0.5,"osc_2_tune":0.5,"osc_2_transpose":0.5,"filter_1_cutoff":0.6,"filter_1_resonance":0.3,"filter_1_drive":0.2,"filter_1_blend":0.5,"env_1_attack":0.02,"env_1_decay":0.3,"env_1_sustain":0.7,"env_1_release":0.4,"env_2_attack":0.0,"env_2_decay":0.2,"env_2_sustain":0.0,"env_2_release":0.2,"lfo_1_frequency":0.3,"lfo_1_amount":0.0,"lfo_2_frequency":0.2,"lfo_2_amount":0.0,"reverb_mix":0.15,"reverb_decay_time":0.4,"reverb_size":0.5,"delay_mix":0.0,"delay_frequency":0.5,"distortion_amount":0.0,"distortion_mix":0.5,"chorus_mix":0.0,"chorus_amount":0.3,"phaser_mix":0.0,"phaser_amount":0.3}"#;
+{"osc_1_wave_frame":0.5,"osc_1_level":0.8,"osc_1_pan":0.5,"osc_1_tune":0.5,"osc_1_transpose":0.5,"osc_1_unison_voices":0.0,"osc_1_unison_detune":0.2,"osc_1_phase":0.5,"osc_2_wave_frame":0.25,"osc_2_level":0.0,"osc_2_pan":0.5,"osc_2_tune":0.5,"osc_2_transpose":0.5,"osc_2_unison_voices":0.0,"osc_2_unison_detune":0.2,"osc_2_phase":0.5,"filter_1_cutoff":0.6,"filter_1_resonance":0.3,"filter_1_drive":0.0,"filter_1_blend":0.0,"env_1_attack":0.02,"env_1_decay":0.3,"env_1_sustain":0.7,"env_1_release":0.2,"env_2_attack":0.0,"env_2_decay":0.2,"env_2_sustain":0.0,"env_2_release":0.2,"lfo_1_frequency":0.3,"lfo_1_phase":0.0,"lfo_1_fade_time":0.0,"lfo_1_delay_time":0.0,"reverb_dry_wet":0.15,"reverb_decay_time":0.4,"reverb_size":0.5,"delay_dry_wet":0.0,"delay_feedback":0.3,"delay_frequency":0.5,"chorus_dry_wet":0.0,"chorus_feedback":0.3,"distortion_drive":0.0,"distortion_mix":0.5}"#;
 
 // ── Public API ───────────────────────────────────────────────────────────────
 
@@ -112,7 +118,10 @@ pub async fn generate_preset_json(
         let resp_json: Value = resp.json().await?;
         match extract_and_parse_content(&resp_json) {
             Ok(params) => {
-                tracing::info!("Gemini returned {} parameters", params.as_object().map(|m| m.len()).unwrap_or(0));
+                tracing::info!(
+                    "Gemini returned {} parameters",
+                    params.as_object().map(|m| m.len()).unwrap_or(0)
+                );
                 return Ok(params);
             }
             Err(e) => {
@@ -120,7 +129,11 @@ pub async fn generate_preset_json(
                     tracing::warn!("Gemini JSON parse failed on attempt 1, retrying: {}", e);
                     continue;
                 }
-                return Err(anyhow!("Gemini response could not be parsed as JSON after {} attempts: {}", attempt + 1, e));
+                return Err(anyhow!(
+                    "Gemini response could not be parsed as JSON after {} attempts: {}",
+                    attempt + 1,
+                    e
+                ));
             }
         }
     }
@@ -139,7 +152,6 @@ fn build_request_body(
 ) -> Value {
     let audio_b64 = BASE64.encode(audio_data);
 
-    // Build the user text part.
     let mut user_text = String::new();
 
     // Add timestamp focus if provided.
