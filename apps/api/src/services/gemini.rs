@@ -196,7 +196,7 @@ fn build_request_body(
             ]
         }],
         "generationConfig": {
-            "maxOutputTokens": 512,
+            "maxOutputTokens": 2048,
             "temperature": 0.2,
             "responseMimeType": "application/json"
         }
