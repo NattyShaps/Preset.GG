@@ -9,15 +9,15 @@ export default function HowItWorksModal({ onClose }: HowItWorksModalProps) {
         <h2 className="text-xl font-bold text-center mb-4">How it works</h2>
 
         <p className="text-sm text-center text-gray-300 mb-6 leading-relaxed">
-          Preset.gg allows <span className="text-[#CC0FE0]">anyone</span> to reverse-engineer synth sounds. This
-          tool is only possible because of the open Audius network and on-chain token utility, which let us bypass
-          Web2 subscriptions and copyright friction to give you royalty-free presets.
+          Preset.gg is a decentralized sound design copilot that allows music producers to search for any track
+          on Audius, highlight a specific sound, and instantly generate a playable, royalty-free synthesizer preset
+          for Vital and Serum (coming soon).
         </p>
 
         <div className="space-y-3 text-sm text-center text-gray-300 mb-8">
-          <p><strong className="text-white">Step 1:</strong> search audius for a track or describe a sound</p>
-          <p><strong className="text-white">Step 2:</strong> let the ai listen and extract the exact synth parameters</p>
-          <p><strong className="text-white">Step 3:</strong> download the .vital file and drag it into your daw</p>
+          <p><strong className="text-white">Step 1:</strong> Describe a sound that you would like to recreate. Hint: Using the built in search, find and select a reference song on Audius' open database. Concentrate your search window for even more accurate results.</p>
+          <p><strong className="text-white">Step 2:</strong> Allow Preset.GG to listen and extract the exact synth parameters.</p>
+          <p><strong className="text-white">Step 3:</strong> Save and Download the preset for use in your DAW.</p>
         </div>
 
         <button

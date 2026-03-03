@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { X, FileAudio } from 'lucide-react';
 import type { GenerationResult } from '@/hooks/usePresetGeneration';
 
@@ -34,6 +35,15 @@ function downloadPreset(result: GenerationResult) {
 }
 
 export default function SuccessModal({ result, onClose }: SuccessModalProps) {
+  const [hasDownloaded, setHasDownloaded] = useState(false);
+
+  const handleDownload = () => {
+    if (hasDownloaded) return;
+    setHasDownloaded(true);
+    downloadPreset(result);
+    onClose();
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="xp-outset w-[420px] shadow-[2px_2px_15px_rgba(0,0,0,0.5)] flex flex-col text-black">
@@ -62,14 +72,16 @@ export default function SuccessModal({ result, onClose }: SuccessModalProps) {
           {/* Buttons */}
           <div className="flex justify-end space-x-2 mt-auto">
             <button
-              onClick={() => downloadPreset(result)}
-              className="px-5 py-1 bg-[#ECE9D8] border-2 border-t-white border-l-white border-b-gray-500 border-r-gray-500 active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white text-sm focus:outline-black focus:outline-1 focus:outline-offset-[-4px]"
+              onClick={handleDownload}
+              disabled={hasDownloaded}
+              className="px-5 py-1 bg-[#ECE9D8] border-2 border-t-white border-l-white border-b-gray-500 border-r-gray-500 active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white text-sm focus:outline-black focus:outline-1 focus:outline-offset-[-4px] disabled:opacity-50 disabled:cursor-default disabled:active:border-t-white disabled:active:border-l-white disabled:active:border-b-gray-500 disabled:active:border-r-gray-500"
             >
               Open
             </button>
             <button
-              onClick={() => downloadPreset(result)}
-              className="px-5 py-1 bg-[#ECE9D8] border-2 border-t-white border-l-white border-b-gray-500 border-r-gray-500 active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white text-sm focus:outline-black focus:outline-1 focus:outline-offset-[-4px]"
+              onClick={handleDownload}
+              disabled={hasDownloaded}
+              className="px-5 py-1 bg-[#ECE9D8] border-2 border-t-white border-l-white border-b-gray-500 border-r-gray-500 active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white text-sm focus:outline-black focus:outline-1 focus:outline-offset-[-4px] disabled:opacity-50 disabled:cursor-default disabled:active:border-t-white disabled:active:border-l-white disabled:active:border-b-gray-500 disabled:active:border-r-gray-500"
             >
               Save
             </button>

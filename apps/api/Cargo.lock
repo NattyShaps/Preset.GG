@@ -2588,7 +2588,6 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "dotenvy",
- "flate2",
  "futures-util",
  "reqwest",
  "serde",

@@ -43,6 +43,22 @@ export function getStreamUrl(trackId: string): string {
 }
 
 /**
+ * Fetch the full audio file for a track and return a blob URL.
+ * Blob URLs support arbitrary seeking, unlike the progressive stream.
+ */
+export async function fetchAudioBlob(
+  trackId: string,
+  signal?: AbortSignal,
+): Promise<string> {
+  const res = await fetch(getStreamUrl(trackId), { signal });
+  if (!res.ok) {
+    throw new Error(`Audio fetch failed: ${res.status} ${res.statusText}`);
+  }
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}
+
+/**
  * Format seconds as mm:ss.
  */
 export function formatDuration(seconds: number): string {

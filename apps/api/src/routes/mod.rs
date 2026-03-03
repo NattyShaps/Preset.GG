@@ -6,10 +6,10 @@ pub mod stream;
 
 use axum::{routing::{get, post}, Router};
 
-use crate::config::AppConfig;
+use crate::AppState;
 
 /// Build the complete API router with all route groups.
-pub fn create_router(config: AppConfig) -> Router {
+pub fn create_router(state: AppState) -> Router {
     Router::new()
         // Health
         .route("/health", get(health::health_check))
@@ -22,5 +22,5 @@ pub fn create_router(config: AppConfig) -> Router {
         .route("/api/presets/{id}/download", get(presets::download_preset))
         // Auth
         .route("/api/auth/verify", post(auth::verify_wallet))
-        .with_state(config)
+        .with_state(state)
 }

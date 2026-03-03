@@ -13,12 +13,13 @@ use axum::{
 };
 use std::time::Duration;
 
-use crate::config::AppConfig;
+use crate::AppState;
 
 pub async fn stream_track(
-    State(config): State<AppConfig>,
+    State(state): State<AppState>,
     Path(track_id): Path<String>,
 ) -> Result<Response<Body>, StatusCode> {
+    let config = &state.config;
     let upstream_url = format!(
         "https://api.audius.co/v1/tracks/{}/stream",
         track_id
@@ -62,7 +63,6 @@ pub async fn stream_track(
         .status(StatusCode::OK)
         .header("Content-Type", "audio/mpeg")
         .header("Access-Control-Allow-Origin", "*")
-        .header("Accept-Ranges", "bytes")
         .body(body)
         .map_err(|e| {
             tracing::error!("Failed to build response: {}", e);

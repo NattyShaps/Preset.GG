@@ -7,6 +7,8 @@ interface PromptInputProps {
   onSearchToggle: () => void;
   onSubmit: (e?: React.FormEvent) => void;
   canSubmit: boolean;
+  generationsUsed: number;
+  generationsLimit: number;
 }
 
 export default function PromptInput({
@@ -16,6 +18,8 @@ export default function PromptInput({
   onSearchToggle,
   onSubmit,
   canSubmit,
+  generationsUsed,
+  generationsLimit,
 }: PromptInputProps) {
   return (
     <div className="flex items-center w-full relative">
@@ -31,7 +35,7 @@ export default function PromptInput({
 
         <div className="absolute right-3 z-10 flex items-center space-x-2">
           <span className="text-[10px] text-white/70 font-pixel uppercase tracking-wider mt-0.5 mr-1">
-            Gen: 1/1
+            Gen: {generationsUsed}/{generationsLimit}
           </span>
           <button
             type="button"
@@ -56,7 +60,7 @@ export default function PromptInput({
       <div className="ml-4 relative group cursor-help flex items-center shrink-0">
         <HelpCircle className="w-6 h-6 text-white/80 hover:text-white transition-colors" />
         <div className="absolute bottom-full right-0 mb-3 w-64 p-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl text-xs hidden group-hover:block shadow-[0_8px_32px_rgba(0,0,0,0.15)] z-50 text-white font-sans">
-          Your request will be much better if there is a specific song to search.
+          Selecting a reference track and focus window will greatly improve the accuracy of your requested preset!
         </div>
       </div>
     </div>

@@ -15,6 +15,8 @@ export interface GenerationResult {
   format: 'vital' | 'fxp';
   /** Base64-encoded .vital file bytes */
   presetData: string;
+  generationsUsed: number;
+  generationsLimit: number;
 }
 
 export interface GenerateParams {
@@ -58,6 +60,8 @@ export function usePresetGeneration() {
         fileName: response.file_name,
         format: response.format as 'vital' | 'fxp',
         presetData: response.preset_data,
+        generationsUsed: response.generations_used,
+        generationsLimit: response.generations_limit,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Generation failed';
@@ -66,7 +70,7 @@ export function usePresetGeneration() {
       if (message.includes('too large')) {
         setError('Audio too large. Try selecting a shorter region with the focus window.');
       } else if (message.includes('limit') || message.includes('rate') || message.includes('Rate')) {
-        setError('Generation limit reached. Connect your wallet and hold $AUDIO for more.');
+        setError('Daily limit reached (5/5). Try again in 24 hours.');
       } else if (message.includes('AI generation failed') || message.includes('Gemini')) {
         setError('AI couldn\'t analyze this sound. Try a different prompt or track.');
       } else if (message.includes('fetch') || message.includes('network') || message.includes('Failed to fetch')) {

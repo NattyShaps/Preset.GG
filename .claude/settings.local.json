@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la //wsl.localhost/Ubuntu/home/athan/linux-solana-programs/Preset.GG/apps/)",
+      "Bash(find //wsl.localhost/Ubuntu/home/athan/linux-solana-programs/Preset.GG/apps -type f -name \"*SuccessModal*\")",
+      "Bash(wc -c //wsl.localhost/Ubuntu/home/athan/linux-solana-programs/Preset.GG/apps/api/src/preset/init_template.json)",
+      "WebFetch(domain:ai.google.dev)",
+      "Bash(cargo build)",
+      "Bash(wsl -d Ubuntu -e bash -c \"cd /home/athan/linux-solana-programs/Preset.GG/apps/api && cargo build 2>&1\")",
+      "Bash(wsl -d Ubuntu -e bash -lc \"cd /home/athan/linux-solana-programs/Preset.GG/apps/api && cargo build 2>&1\")",
+      "Bash(wsl -d Ubuntu -e bash -lc \"cd /home/athan/linux-solana-programs/Preset.GG/apps/api/src/preset && python3 -c \"\":*)",
+      "Bash(wsl -d:*)",
+      "Bash(python3 -c \":*)",
+      "Bash(cd //wsl.localhost/Ubuntu/home/athan/linux-solana-programs/Preset.GG)",
+      "Bash(node -e \":*)",
+      "Bash(node /home/athan/linux-solana-programs/Preset.GG/analyze_vital.js)",
+      "Bash(node -e \"const fs = require\\(''fs''\\); const data = JSON.parse\\(fs.readFileSync\\(''apps/api/src/preset/init_template.json'', ''utf8''\\)\\); const settings = data.settings; const keys = [''flanger_dry_wet'', ''flanger_on'', ''phaser_dry_wet'', ''phaser_on'', ''chorus_dry_wet'', ''chorus_on'', ''reverb_dry_wet'', ''reverb_on'', ''delay_dry_wet'', ''delay_on'', ''distortion_drive'', ''distortion_on'', ''compressor_mix'', ''compressor_on'', ''eq_on'', ''osc_2_level'', ''osc_2_on'', ''osc_3_level'', ''osc_3_on'', ''sample_on'']; keys.forEach\\(key => { console.log\\(key + '': '' + settings[key]\\); }\\);\")",
+      "Bash(node -e \"const fs = require\\(''fs''\\); const data = JSON.parse\\(fs.readFileSync\\(''/mnt/c/Users/Nathan/Desktop/../../home/athan/linux-solana-programs/Preset.GG/apps/api/src/preset/init_template.json'', ''utf8''\\)\\); const settings = data.settings; const keys = [''flanger_dry_wet'', ''flanger_on'', ''phaser_dry_wet'', ''phaser_on'', ''chorus_dry_wet'', ''chorus_on'', ''reverb_dry_wet'', ''reverb_on'', ''delay_dry_wet'', ''delay_on'', ''distortion_drive'', ''distortion_on'', ''compressor_mix'', ''compressor_on'', ''eq_on'', ''osc_2_level'', ''osc_2_on'', ''osc_3_level'', ''osc_3_on'', ''sample_on'']; keys.forEach\\(key => { console.log\\(key + '': '' + settings[key]\\); }\\);\")",
+      "Bash(node -e \"const fs = require\\(''fs''\\); const data = JSON.parse\\(fs.readFileSync\\(''/home/athan/linux-solana-programs/Preset.GG/apps/api/src/preset/init_template.json'', ''utf8''\\)\\); const settings = data.settings; const keys = [''flanger_dry_wet'', ''flanger_on'', ''phaser_dry_wet'', ''phaser_on'', ''chorus_dry_wet'', ''chorus_on'', ''reverb_dry_wet'', ''reverb_on'', ''delay_dry_wet'', ''delay_on'', ''distortion_drive'', ''distortion_on'', ''compressor_mix'', ''compressor_on'', ''eq_on'', ''osc_2_level'', ''osc_2_on'', ''osc_3_level'', ''osc_3_on'', ''sample_on'']; keys.forEach\\(key => { console.log\\(key + '': '' + settings[key]\\); }\\);\")",
+      "Bash(cd \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\athan\\\\linux-solana-programs\\\\Preset.GG\\\\apps\\\\api\")",
+      "Bash(wsl -e bash -lc \"cd /home/athan/linux-solana-programs/Preset.GG/apps/api && cargo build 2>&1 | tail -20\")",
+      "Bash(wsl -e python3 -c \":*)",
+      "Bash(wsl -e bash -lc \"cd /home/athan/linux-solana-programs/Preset.GG/apps/api && cargo build 2>&1 | tail -5\")",
+      "Bash(wsl -e bash -lc \"cd /home/athan/linux-solana-programs/Preset.GG/apps/api && cargo build 2>&1 | tail -15\")",
+      "Bash(wsl -e bash -lc \"cd /home/athan/linux-solana-programs/Preset.GG/apps/web && npx tsc --noEmit 2>&1 | tail -20\")",
+      "Bash(wsl -e bash -lc \"cd /home/athan/linux-solana-programs/Preset.GG/apps/web && ./node_modules/.bin/tsc --noEmit 2>&1 | tail -20\")",
+      "Bash(wsl -e bash -lc \"cd /home/athan/linux-solana-programs/Preset.GG && ls node_modules/.bin/tsc 2>/dev/null; ls apps/web/node_modules/.bin/tsc 2>/dev/null; which tsc 2>/dev/null\")",
+      "Bash(wsl -e bash -lc \"cd /home/athan/linux-solana-programs/Preset.GG && node_modules/.bin/tsc --noEmit -p apps/web/tsconfig.json 2>&1 | tail -20\")",
+      "Bash(wsl -e bash -lc \"source ~/.nvm/nvm.sh && cd /home/athan/linux-solana-programs/Preset.GG && node node_modules/.bin/tsc --noEmit -p apps/web/tsconfig.json 2>&1 | tail -20\")",
+      "Bash(wsl -e bash -lc \"cd /home/athan/linux-solana-programs/Preset.GG && git status\")",
+      "Bash(wsl -e bash -lc \"cd /home/athan/linux-solana-programs/Preset.GG && git diff --stat HEAD\")",
+      "Bash(wsl -e bash -lc \"cd /home/athan/linux-solana-programs/Preset.GG && git log --oneline -5\")"
+    ]
+  }
+}

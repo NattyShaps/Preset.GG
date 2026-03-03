@@ -40,8 +40,5 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 anyhow = "1"
 thiserror = "2"
 
-# Compression (Vital presets are gzipped JSON)
-flate2 = "1"
-
 # UUID generation
 uuid = { version = "1", features = ["v4"] }

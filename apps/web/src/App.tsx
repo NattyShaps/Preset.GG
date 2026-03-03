@@ -11,7 +11,7 @@ import HowItWorksModal from './components/ui/HowItWorksModal';
 import SuccessModal from './components/preset/SuccessModal';
 import { useAudiusSearch } from './hooks/useAudiusSearch';
 import { usePresetGeneration } from './hooks/usePresetGeneration';
-import { getStreamUrl } from './lib/audius';
+import { getStreamUrl, fetchAudioBlob } from './lib/audius';
 import type { AudiusTrack } from './types/audius';
 
 export type AppState = 'idle' | 'searching' | 'generating' | 'success';
@@ -28,12 +28,19 @@ export default function App() {
   // Generation error shown inline below the prompt
   const [generationError, setGenerationError] = useState<string | null>(null);
 
+  // Generation usage counter (updated from API responses)
+  const [genUsed, setGenUsed] = useState(0);
+  const [genLimit, setGenLimit] = useState(5);
+
   const audiusSearch = useAudiusSearch();
   const presetGeneration = usePresetGeneration();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   // Track whether the audio src has been set (to avoid re-setting on pause/play)
   const loadedSrcRef = useRef<string | null>(null);
+  // Blob URL for full-file seeking support
+  const blobUrlRef = useRef<string | null>(null);
+  const fetchControllerRef = useRef<AbortController | null>(null);
 
   const isDisabled = appState === 'generating' || appState === 'success';
 
@@ -44,10 +51,57 @@ export default function App() {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const url = getStreamUrl(track.id);
+    // Prefer blob URL (supports seeking); fall back to stream URL
+    const url = blobUrlRef.current ?? getStreamUrl(track.id);
     if (loadedSrcRef.current !== url) {
       audio.src = url;
       loadedSrcRef.current = url;
+    }
+  };
+
+  /** Kick off a background fetch of the full audio file as a blob */
+  const startBlobFetch = (track: AudiusTrack) => {
+    // Already have a blob for this track
+    if (blobUrlRef.current) return;
+    // Already fetching
+    if (fetchControllerRef.current) return;
+
+    const controller = new AbortController();
+    fetchControllerRef.current = controller;
+
+    fetchAudioBlob(track.id, controller.signal)
+      .then((blobUrl) => {
+        fetchControllerRef.current = null;
+        blobUrlRef.current = blobUrl;
+
+        // Swap the audio src to the blob URL, preserving playback position
+        const audio = audioRef.current;
+        if (audio) {
+          const wasPlaying = !audio.paused;
+          const pos = audio.currentTime;
+          audio.src = blobUrl;
+          loadedSrcRef.current = blobUrl;
+          audio.currentTime = pos;
+          if (wasPlaying) audio.play();
+        }
+      })
+      .catch((err) => {
+        fetchControllerRef.current = null;
+        if (err.name !== 'AbortError') {
+          console.error('Blob fetch failed (seeking will be limited):', err);
+        }
+      });
+  };
+
+  /** Clean up blob URL and cancel in-flight fetch */
+  const cleanupBlob = () => {
+    if (fetchControllerRef.current) {
+      fetchControllerRef.current.abort();
+      fetchControllerRef.current = null;
+    }
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
     }
   };
 
@@ -81,6 +135,8 @@ export default function App() {
   // Sync generation hook state → appState
   // We use the hook's state directly rather than useEffect to keep it simple
   if (presetGeneration.result && appState === 'generating') {
+    setGenUsed(presetGeneration.result.generationsUsed);
+    setGenLimit(presetGeneration.result.generationsLimit);
     setAppState('success');
   }
   if (presetGeneration.error && appState === 'generating') {
@@ -108,6 +164,7 @@ export default function App() {
     setGenerationError(null);
     setAppState('idle');
     audiusSearch.clear();
+    cleanupBlob();
     loadedSrcRef.current = null;
     if (audioRef.current) {
       audioRef.current.pause();
@@ -119,6 +176,7 @@ export default function App() {
     setSelectedTrack(null);
     setConfirmedRange(null);
     setGenerationError(null);
+    cleanupBlob();
     loadedSrcRef.current = null;
     if (audioRef.current) {
       audioRef.current.pause();
@@ -134,6 +192,7 @@ export default function App() {
       setIsPlaying(false);
     } else {
       ensureAudioLoaded(selectedTrack);
+      startBlobFetch(selectedTrack);
 
       // If a confirmed range exists and we're outside it, seek to start
       if (confirmedRange) {
@@ -158,6 +217,15 @@ export default function App() {
     if (!audio || !selectedTrack) return;
 
     ensureAudioLoaded(selectedTrack);
+
+    // If blob isn't loaded yet, clamp to the buffered range
+    if (!blobUrlRef.current && audio.buffered.length > 0) {
+      const bufferedEnd = audio.buffered.end(audio.buffered.length - 1);
+      if (time > bufferedEnd) {
+        time = bufferedEnd;
+      }
+    }
+
     audio.currentTime = time;
   };
 
@@ -209,6 +277,8 @@ export default function App() {
           onSearchToggle={handleSearchToggle}
           onSubmit={handleGenerate}
           canSubmit={!!(prompt || selectedTrack)}
+          generationsUsed={genUsed}
+          generationsLimit={genLimit}
         />
 
         {/* Generation error */}

@@ -31,6 +31,10 @@ export interface GenerateResponse {
   format: string;
   /** Base64-encoded .vital file bytes for direct client-side download. */
   preset_data: string;
+  /** How many generations the user has used in the current 24h window. */
+  generations_used: number;
+  /** Maximum generations allowed in the 24h window. */
+  generations_limit: number;
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────

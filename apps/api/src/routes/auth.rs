@@ -9,9 +9,9 @@
 use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 
-use crate::config::AppConfig;
 use crate::errors::AppError;
 use crate::solana::{tiers, token_gate};
+use crate::AppState;
 
 // ── Request / Response ────────────────────────────────────────────────────────
 
@@ -33,9 +33,10 @@ pub struct VerifyResponse {
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 pub async fn verify_wallet(
-    State(config): State<AppConfig>,
+    State(state): State<AppState>,
     Json(payload): Json<VerifyRequest>,
 ) -> Result<Json<VerifyResponse>, AppError> {
+    let config = &state.config;
     let pubkey = payload.wallet_pubkey.trim();
 
     if pubkey.is_empty() {

@@ -2,15 +2,18 @@ use serde::Deserialize;
 
 // ── Audio budget policy ──────────────────────────────────────────────────────
 
-/// Maximum audio size we'll fetch from Audius and send to Gemini (10 MB).
-/// At 320 kbps MP3, this is roughly 4 minutes of audio.
-pub const MAX_AUDIO_SIZE_BYTES: usize = 10_485_760;
+/// Maximum audio size we'll fetch from Audius and send to Gemini (15 MB).
+/// At 320 kbps MP3, this covers up to ~6 minutes of audio.
+pub const MAX_AUDIO_SIZE_BYTES: usize = 15_728_640;
 
 /// Timeout for fetching audio from Audius (seconds).
 pub const AUDIUS_FETCH_TIMEOUT_SECS: u64 = 15;
 
-/// Timeout for Gemini API requests (seconds).
-pub const GEMINI_REQUEST_TIMEOUT_SECS: u64 = 30;
+/// Timeout for Gemini Pro API requests (seconds).
+pub const GEMINI_REQUEST_TIMEOUT_SECS: u64 = 60;
+
+/// Timeout for Gemini Flash prompt enhancement (seconds).
+pub const GEMINI_FLASH_TIMEOUT_SECS: u64 = 25;
 
 /// How many times to retry a Gemini call on JSON parse failure.
 pub const GEMINI_MAX_RETRIES: u32 = 1;

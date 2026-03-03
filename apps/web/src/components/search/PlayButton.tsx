@@ -41,6 +41,7 @@ export default function PlayButton({
 
   const [progress, setProgress] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
+  const isSeekingRef = useRef(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
 
   // ── Effective time boundaries ──────────────────────────────────────────
@@ -50,7 +51,7 @@ export default function PlayButton({
 
   // ── Progress sync ─────────────────────────────────────────────────────
   const updateProgress = useCallback(() => {
-    if (isSeeking) return;           // Don't fight the drag
+    if (isSeekingRef.current) return;  // Don't fight the drag
     const audio = audioRef.current;
     if (!audio) return;
 
@@ -58,16 +59,24 @@ export default function PlayButton({
       const p = (audio.currentTime - effectiveStart) / effectiveDuration;
       setProgress(Math.max(0, Math.min(1, p)));
     }
-  }, [audioRef, effectiveStart, effectiveDuration, isSeeking]);
+  }, [audioRef, effectiveStart, effectiveDuration]);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
+
+    const handleSeeked = () => {
+      // Only clear seeking state after the audio element has arrived at the new position.
+      isSeekingRef.current = false;
+      setIsSeeking(false);
+      updateProgress();
+    };
+
     audio.addEventListener('timeupdate', updateProgress);
-    audio.addEventListener('seeked', updateProgress);
+    audio.addEventListener('seeked', handleSeeked);
     return () => {
       audio.removeEventListener('timeupdate', updateProgress);
-      audio.removeEventListener('seeked', updateProgress);
+      audio.removeEventListener('seeked', handleSeeked);
     };
   }, [audioRef, updateProgress]);
 
@@ -107,29 +116,37 @@ export default function PlayButton({
     const ringRadius = (size - strokeWidth) / 2;
     // Hit zone: within ±hitSlop of the ring radius
     const hitSlop = 14;
-    if (dist < ringRadius - hitSlop) return;   // Too close to center → let play/pause handle it
+    if (dist < ringRadius - hitSlop) {
+      // Center area → toggle play/pause
+      onPlayPause();
+      return;
+    }
 
     e.preventDefault();
     e.stopPropagation();
     (e.target as Element).setPointerCapture(e.pointerId);
 
+    isSeekingRef.current = true;
     setIsSeeking(true);
     const frac = angleToFraction(e.clientX, e.clientY);
     setProgress(Math.max(0, Math.min(1, frac)));
   };
 
   const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (!isSeeking) return;
+    if (!isSeekingRef.current) return;
     const frac = angleToFraction(e.clientX, e.clientY);
     setProgress(Math.max(0, Math.min(1, frac)));
   };
 
   const handlePointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (!isSeeking) return;
+    if (!isSeekingRef.current) return;
     (e.target as Element).releasePointerCapture(e.pointerId);
-    setIsSeeking(false);
+    // Keep isSeekingRef.current = true — it will be cleared by the 'seeked' event
+    // listener, preventing updateProgress from snapping back to the old position.
     const frac = angleToFraction(e.clientX, e.clientY);
-    const time = fractionToTime(Math.max(0, Math.min(1, frac)));
+    const clampedFrac = Math.max(0, Math.min(1, frac));
+    setProgress(clampedFrac);
+    const time = fractionToTime(clampedFrac);
     onSeek(time);
   };
 
@@ -205,7 +222,7 @@ export default function PlayButton({
       <button
         onClick={onPlayPause}
         disabled={disabled}
-        className="relative z-10 flex items-center justify-center w-full h-full rounded-full transition-colors group"
+        className="relative flex items-center justify-center w-full h-full rounded-full transition-colors group pointer-events-none"
         title={isPlaying ? 'Pause' : 'Play'}
       >
         <span className="text-white/80 group-hover:text-white text-sm leading-none select-none">
