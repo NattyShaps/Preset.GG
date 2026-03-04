@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import SpinnerLogo from './components/layout/SpinnerLogo';
@@ -373,6 +374,7 @@ export default function App() {
           onClose={handleSuccessClose}
         />
       )}
+      <Analytics />
     </div>
   );
 }
