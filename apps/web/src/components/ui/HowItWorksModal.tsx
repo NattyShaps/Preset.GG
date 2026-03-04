@@ -14,10 +14,22 @@ export default function HowItWorksModal({ onClose }: HowItWorksModalProps) {
           for Vital and Serum (coming soon).
         </p>
 
-        <div className="space-y-3 text-sm text-center text-gray-300 mb-8">
-          <p><strong className="text-white">Step 1:</strong> Describe a sound that you would like to recreate. Hint: Using the built in search, find and select a reference song on Audius' open database. Concentrate your search window for even more accurate results.</p>
-          <p><strong className="text-white">Step 2:</strong> Allow Preset.GG to listen and extract the exact synth parameters.</p>
-          <p><strong className="text-white">Step 3:</strong> Save and Download the preset for use in your DAW.</p>
+        <div className="space-y-3 text-sm text-left text-gray-300 mb-8">
+          <div className="flex items-start gap-2">
+            <strong className="text-white shrink-0">Step 1:</strong>
+            <div className="space-y-1">
+              <p>Describe a sound that you would like to recreate.</p>
+              <p className="text-xs text-gray-400"><strong className="text-gray-300">Hint:</strong> Using the built in search, find and select a reference song on Audius' open database. Concentrate your search window for even more accurate results.</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-2">
+            <strong className="text-white shrink-0">Step 2:</strong>
+            <p>Allow Preset.GG to listen and extract the exact synth parameters.</p>
+          </div>
+          <div className="flex items-start gap-2">
+            <strong className="text-white shrink-0">Step 3:</strong>
+            <p>Save and Download the preset for use in your DAW.</p>
+          </div>
         </div>
 
         <button

@@ -4,6 +4,7 @@ import type { GenerationResult } from '@/hooks/usePresetGeneration';
 
 interface SuccessModalProps {
   result: GenerationResult;
+  onSave: () => void;
   onClose: () => void;
 }
 
@@ -34,14 +35,14 @@ function downloadPreset(result: GenerationResult) {
   }
 }
 
-export default function SuccessModal({ result, onClose }: SuccessModalProps) {
+export default function SuccessModal({ result, onSave, onClose }: SuccessModalProps) {
   const [hasDownloaded, setHasDownloaded] = useState(false);
 
   const handleDownload = () => {
     if (hasDownloaded) return;
     setHasDownloaded(true);
     downloadPreset(result);
-    onClose();
+    onSave();
   };
 
   return (

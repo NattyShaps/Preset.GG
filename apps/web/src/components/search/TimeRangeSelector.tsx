@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { formatDuration } from '@/lib/audius';
 import { Clock, Check, X, Pencil } from 'lucide-react';
+import WaveformRange from './WaveformRange';
 
 /** Threshold in seconds — show the time range selector above this */
 export const TIME_RANGE_THRESHOLD = 180; // 3 minutes
@@ -11,11 +12,16 @@ export interface TimeRange {
 }
 
 interface TimeRangeSelectorProps {
+  trackId: string;
   duration: number; // track duration in seconds
   /** The currently confirmed (locked) range, or null */
   confirmedRange: TimeRange | null;
   /** Called ONLY on confirm or clear — not on every keystroke */
   onConfirm: (range: TimeRange | null) => void;
+  /** External audio element — waveform progress syncs to its currentTime */
+  audioRef: React.RefObject<HTMLAudioElement | null>;
+  /** Pre-fetched blob URL for instant waveform loading */
+  blobUrl?: string | null;
   disabled?: boolean;
 }
 
@@ -23,14 +29,17 @@ interface TimeRangeSelectorProps {
  * Optional time range selector for long tracks / mixes.
  *
  * Lifecycle:
- *   collapsed → user clicks toggle → draft mode (inputs editable)
- *   → user clicks ✓ / Enter → confirmed (locked, ring rescales)
+ *   collapsed → user clicks toggle → draft mode (waveform + drag handles)
+ *   → user clicks ✓ → confirmed (locked waveform, ring rescales)
  *   → user clicks ✎ → back to draft → user clicks ✕ → cleared
  */
 export default function TimeRangeSelector({
+  trackId,
   duration,
   confirmedRange,
   onConfirm,
+  audioRef,
+  blobUrl,
   disabled = false,
 }: TimeRangeSelectorProps) {
   // State machine: 'collapsed' | 'draft' | 'confirmed'
@@ -75,12 +84,9 @@ export default function TimeRangeSelector({
     setPhase('collapsed');
   };
 
-  const handleDraftStartChange = (seconds: number) => {
-    setDraftStart(Math.max(0, Math.min(seconds, draftEnd - 1)));
-  };
-
-  const handleDraftEndChange = (seconds: number) => {
-    setDraftEnd(Math.max(draftStart + 1, Math.min(seconds, duration)));
+  const handleRangeChange = (start: number, end: number) => {
+    setDraftStart(Math.max(0, Math.min(start, end - 1)));
+    setDraftEnd(Math.max(start + 1, Math.min(end, duration)));
   };
 
   const toMMSS = (s: number) => formatDuration(s);
@@ -105,16 +111,16 @@ export default function TimeRangeSelector({
     );
   }
 
-  // Confirmed: show locked range + edit / clear buttons
+  // Confirmed: show locked waveform + edit / clear buttons
   if (phase === 'confirmed' && confirmedRange) {
     return (
       <div className="mt-3 w-full max-w-sm">
-        <div className="flex items-center gap-2 bg-purple-500/10 border border-purple-400/20 rounded-xl px-3 py-2">
-          <Clock className="w-3.5 h-3.5 text-purple-300 shrink-0" />
-          <span className="text-purple-200 text-xs font-pixel">
+        <div className="flex items-center gap-1.5 text-xs font-pixel text-white/60 mb-1.5">
+          <Clock className="w-3.5 h-3.5 text-purple-300" />
+          <span className="text-purple-200">
             Focus: {toMMSS(confirmedRange.start)} – {toMMSS(confirmedRange.end)}
           </span>
-          <span className="text-purple-300/50 text-[10px] shrink-0">
+          <span className="text-purple-300/50 text-[10px]">
             ({toMMSS(confirmedRange.end - confirmedRange.start)})
           </span>
           <div className="flex-1" />
@@ -137,11 +143,24 @@ export default function TimeRangeSelector({
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
+        {/* Locked waveform (non-interactive) */}
+        <div className="bg-white/5 border border-purple-400/20 rounded-xl px-3 py-2">
+          <WaveformRange
+            trackId={trackId}
+            duration={duration}
+            startTime={confirmedRange.start}
+            endTime={confirmedRange.end}
+            onRangeChange={() => {}}
+            audioRef={audioRef}
+            blobUrl={blobUrl}
+            disabled
+          />
+        </div>
       </div>
     );
   }
 
-  // Draft: editable inputs + confirm / cancel buttons
+  // Draft: waveform with draggable handles + confirm / cancel buttons
   return (
     <div className="mt-3 w-full max-w-sm">
       <div className="flex items-center gap-1.5 text-xs font-pixel text-white mb-1.5">
@@ -149,106 +168,41 @@ export default function TimeRangeSelector({
         <span>Set focus window</span>
         <span className="text-white/40 ml-1">(track is {toMMSS(duration)})</span>
       </div>
-      <div className="flex items-center gap-2 bg-white/5 border border-white/20 rounded-xl px-3 py-2">
-        <label className="text-white/50 text-xs shrink-0">From</label>
-        <TimeInput
-          value={draftStart}
-          onChange={handleDraftStartChange}
-          max={draftEnd - 1}
+      <div className="bg-white/5 border border-white/20 rounded-xl px-3 py-2">
+        <WaveformRange
+          trackId={trackId}
+          duration={duration}
+          startTime={draftStart}
+          endTime={draftEnd}
+          onRangeChange={handleRangeChange}
+          audioRef={audioRef}
+          blobUrl={blobUrl}
           disabled={disabled}
-          onEnter={handleConfirm}
         />
-        <label className="text-white/50 text-xs shrink-0">to</label>
-        <TimeInput
-          value={draftEnd}
-          onChange={handleDraftEndChange}
-          max={duration}
-          disabled={disabled}
-          onEnter={handleConfirm}
-        />
-        <span className="text-white/30 text-[10px] shrink-0">
-          ({toMMSS(draftEnd - draftStart)})
-        </span>
-        <div className="flex-1" />
-        {/* Confirm */}
-        <button
-          type="button"
-          onClick={handleConfirm}
-          disabled={disabled}
-          className="flex items-center justify-center w-6 h-6 rounded-md bg-white/10 hover:bg-green-500/30 border border-white/20 hover:border-green-400/40 text-white/60 hover:text-green-300 transition-all"
-          title="Confirm focus window (Enter)"
-        >
-          <Check className="w-3.5 h-3.5" />
-        </button>
-        {/* Cancel / clear */}
-        <button
-          type="button"
-          onClick={handleClear}
-          disabled={disabled}
-          className="flex items-center justify-center w-6 h-6 rounded-md bg-white/10 hover:bg-red-500/20 border border-white/20 hover:border-red-400/30 text-white/60 hover:text-red-300 transition-all"
-          title="Cancel"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
+        {/* Action buttons */}
+        <div className="flex items-center justify-end gap-2 mt-2">
+          {/* Confirm */}
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={disabled}
+            className="flex items-center justify-center w-6 h-6 rounded-md bg-white/10 hover:bg-green-500/30 border border-white/20 hover:border-green-400/40 text-white/60 hover:text-green-300 transition-all"
+            title="Confirm focus window"
+          >
+            <Check className="w-3.5 h-3.5" />
+          </button>
+          {/* Cancel / clear */}
+          <button
+            type="button"
+            onClick={handleClear}
+            disabled={disabled}
+            className="flex items-center justify-center w-6 h-6 rounded-md bg-white/10 hover:bg-red-500/20 border border-white/20 hover:border-red-400/30 text-white/60 hover:text-red-300 transition-all"
+            title="Cancel"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Tiny mm:ss input
-// ---------------------------------------------------------------------------
-
-function TimeInput({
-  value,
-  onChange,
-  max,
-  disabled,
-  onEnter,
-}: {
-  value: number;
-  onChange: (seconds: number) => void;
-  max: number;
-  disabled?: boolean;
-  onEnter?: () => void;
-}) {
-  const [display, setDisplay] = useState(formatDuration(value));
-
-  useEffect(() => {
-    setDisplay(formatDuration(value));
-  }, [value]);
-
-  const commit = () => {
-    const parts = display.split(':');
-    if (parts.length === 2) {
-      const mins = parseInt(parts[0], 10);
-      const secs = parseInt(parts[1], 10);
-      if (!isNaN(mins) && !isNaN(secs)) {
-        const total = Math.max(0, Math.min(mins * 60 + secs, max));
-        onChange(total);
-        setDisplay(formatDuration(total));
-        return;
-      }
-    }
-    // Invalid — revert
-    setDisplay(formatDuration(value));
-  };
-
-  return (
-    <input
-      type="text"
-      value={display}
-      onChange={(e) => setDisplay(e.target.value)}
-      onBlur={commit}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          commit();
-          onEnter?.();
-        }
-      }}
-      disabled={disabled}
-      className="w-14 text-center bg-white/10 border border-white/20 rounded-md px-1.5 py-0.5 text-xs text-white font-mono outline-none focus:border-white/40 transition-colors"
-      placeholder="0:00"
-    />
   );
 }

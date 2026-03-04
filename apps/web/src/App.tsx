@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import SpinnerLogo from './components/layout/SpinnerLogo';
+import GeneratingPresetWidget from './components/layout/GeneratingPresetWidget';
 import PromptInput from './components/prompt/PromptInput';
 import SelectedSongBadge from './components/search/SelectedSongBadge';
 import SearchDropdown from './components/search/SearchDropdown';
@@ -21,6 +22,7 @@ export default function App() {
   const [prompt, setPrompt] = useState('');
   const [selectedTrack, setSelectedTrack] = useState<AudiusTrack | null>(null);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [showGeneratingWidget, setShowGeneratingWidget] = useState(false);
 
   // Confirmed (locked) time range — only set when user hits ✓ / Enter
   const [confirmedRange, setConfirmedRange] = useState<TimeRange | null>(null);
@@ -40,6 +42,7 @@ export default function App() {
   const loadedSrcRef = useRef<string | null>(null);
   // Blob URL for full-file seeking support
   const blobUrlRef = useRef<string | null>(null);
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const fetchControllerRef = useRef<AbortController | null>(null);
 
   const isDisabled = appState === 'generating' || appState === 'success';
@@ -73,6 +76,7 @@ export default function App() {
       .then((blobUrl) => {
         fetchControllerRef.current = null;
         blobUrlRef.current = blobUrl;
+        setBlobUrl(blobUrl);
 
         // Swap the audio src to the blob URL, preserving playback position
         const audio = audioRef.current;
@@ -102,6 +106,7 @@ export default function App() {
     if (blobUrlRef.current) {
       URL.revokeObjectURL(blobUrlRef.current);
       blobUrlRef.current = null;
+      setBlobUrl(null);
     }
   };
 
@@ -114,6 +119,7 @@ export default function App() {
     // Clear any previous error
     setGenerationError(null);
     setAppState('generating');
+    setShowGeneratingWidget(true);
 
     // Pause audio during generation
     if (audioRef.current && isPlaying) {
@@ -141,12 +147,22 @@ export default function App() {
   }
   if (presetGeneration.error && appState === 'generating') {
     setGenerationError(presetGeneration.error);
+    setShowGeneratingWidget(false);
     setAppState('idle');
   }
 
-  const handleSuccessClose = () => {
+  const finishGenerationFlow = () => {
+    setShowGeneratingWidget(false);
     presetGeneration.reset();
     setAppState('idle');
+  };
+
+  const handleSuccessSave = () => {
+    finishGenerationFlow();
+  };
+
+  const handleSuccessClose = () => {
+    finishGenerationFlow();
   };
 
   const handleSearchToggle = () => {
@@ -170,6 +186,8 @@ export default function App() {
       audioRef.current.pause();
       setIsPlaying(false);
     }
+    // Pre-fetch audio blob for waveform + seeking
+    startBlobFetch(track);
   };
 
   const handleClearTrack = () => {
@@ -268,6 +286,10 @@ export default function App() {
 
       {/* Center Stage */}
       <div className="w-full max-w-lg px-4 relative z-10 flex flex-col items-center">
+        <GeneratingPresetWidget
+          visible={showGeneratingWidget}
+          isSpinning={appState === 'generating'}
+        />
         <SpinnerLogo isGenerating={appState === 'generating'} />
 
         <PromptInput
@@ -312,9 +334,12 @@ export default function App() {
             {/* Time range selector for long tracks (>3 min) */}
             {selectedTrack.duration > TIME_RANGE_THRESHOLD && (
               <TimeRangeSelector
+                trackId={selectedTrack.id}
                 duration={selectedTrack.duration}
                 confirmedRange={confirmedRange}
                 onConfirm={handleRangeConfirm}
+                audioRef={audioRef}
+                blobUrl={blobUrl}
                 disabled={isDisabled}
               />
             )}
@@ -344,6 +369,7 @@ export default function App() {
       {appState === 'success' && presetGeneration.result && (
         <SuccessModal
           result={presetGeneration.result}
+          onSave={handleSuccessSave}
           onClose={handleSuccessClose}
         />
       )}

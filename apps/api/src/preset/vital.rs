@@ -53,9 +53,10 @@ pub fn merge_gemini_into_template(
                 if let Some(v) = raw_value.as_f64() {
                     // Clamp Gemini's output to 0–1 first.
                     let clamped = v.clamp(0.0, 1.0);
-                    // Convert to real Vital range.
+                    // Convert to real Vital range, then clamp to valid bounds.
                     let vital_value = (mapping.convert)(clamped);
-                    settings.insert(mapping.vital_key.to_string(), json!(vital_value));
+                    let safe_value = vital_value.clamp(mapping.min, mapping.max);
+                    settings.insert(mapping.vital_key.to_string(), json!(safe_value));
                     merged_count += 1;
                 } else {
                     tracing::warn!(

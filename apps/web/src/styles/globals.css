@@ -22,3 +22,18 @@
     @apply bg-gradient-to-r from-[#0058EE] to-[#3593FF] text-white font-bold px-1 py-0.5 flex justify-between items-center;
   }
 }
+
+/* ── WaveSurfer region handle styling ──────────────────────────────── */
+[part="region-handle"] {
+  width: 4px !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-radius: 2px !important;
+  transition: background 0.15s ease;
+}
+[part="region-handle"]:hover {
+  background: rgba(255, 255, 255, 1) !important;
+}
+[part="region"] {
+  border-left: none !important;
+  border-right: none !important;
+}

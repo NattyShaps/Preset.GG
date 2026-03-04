@@ -20,7 +20,7 @@ const GEMINI_API_BASE: &str =
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent";
 
 const GEMINI_FLASH_API: &str =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent";
 
 // ── System Prompts ───────────────────────────────────────────────────────────
 

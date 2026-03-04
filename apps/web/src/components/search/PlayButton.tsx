@@ -30,10 +30,10 @@ export default function PlayButton({
   disabled = false,
   trackDuration,
   confirmedRange,
-  size = 44,
+  size = 48,
 }: PlayButtonProps) {
   // ── SVG ring geometry (declared early — used by pointer handlers) ────
-  const strokeWidth = 2.5;
+  const strokeWidth = 3;
   const hitStrokeWidth = 24;      // Invisible fat ring for easier grabbing
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -161,13 +161,14 @@ export default function PlayButton({
   return (
     <div
       className="relative flex items-center justify-center"
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, overflow: 'visible' }}
     >
       {/* SVG with drag interaction */}
       <svg
         ref={svgRef}
         width={size}
         height={size}
+        overflow="visible"
         className="absolute inset-0 -rotate-90"
         style={{ cursor: disabled ? 'default' : 'pointer', touchAction: 'none' }}
         onPointerDown={handlePointerDown}
@@ -190,7 +191,7 @@ export default function PlayButton({
           cy={center}
           r={radius}
           fill="none"
-          stroke="rgba(255,255,255,0.15)"
+          stroke="rgba(255,255,255,0.25)"
           strokeWidth={strokeWidth}
         />
         {/* Visible progress ring */}

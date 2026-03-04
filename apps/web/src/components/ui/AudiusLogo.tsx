@@ -5,9 +5,14 @@ interface AudiusLogoProps {
 export default function AudiusLogo({ className }: AudiusLogoProps) {
   return (
     <svg viewBox="0 0 100 100" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path fillRule="evenodd" clipRule="evenodd" d="M49.9999 15L15 75H35L49.9999 49.2857L65 75H85L49.9999 15ZM35 75L25 92.1428H75L65 75H35Z" fill="url(#audiusGradient)"/>
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M18 8 L38 8 L82 33 L38 58 L18 58 Z M38 20 L62 33 L38 46 Z M18 58 L38 58 L42 92 L14 92 Z"
+        fill="url(#presetGradient)"
+      />
       <defs>
-        <linearGradient id="audiusGradient" x1="15" y1="15" x2="85" y2="92.1428" gradientUnits="userSpaceOnUse">
+        <linearGradient id="presetGradient" x1="18" y1="8" x2="85" y2="92" gradientUnits="userSpaceOnUse">
           <stop stopColor="#CC0FE0"/>
           <stop offset="1" stopColor="#7E1BCC"/>
         </linearGradient>
